@@ -1,7 +1,11 @@
-// Default to 8010 to avoid port collisions on Windows.
-// You can override by running in DevTools console:
+// API base:
+// - Deployed on Vercel: use same-origin serverless routes under /api
+// - Local dev: defaults to http://localhost:8010 (override via localStorage)
 //   localStorage.setItem("DDV_API_BASE", "http://localhost:8000"); location.reload();
-const API_BASE = (localStorage.getItem("DDV_API_BASE") || "http://localhost:8010").replace(/\/$/, "");
+const OVERRIDE_API_BASE = localStorage.getItem("DDV_API_BASE");
+const DEFAULT_LOCAL_API = "http://localhost:8010";
+const API_BASE = ((OVERRIDE_API_BASE ?? (location.hostname.endsWith("vercel.app") ? "" : DEFAULT_LOCAL_API)) || "")
+  .replace(/\/$/, "");
 const TOKEN_KEY = "DDV_ACCESS_TOKEN";
 
 const el = (id) => document.getElementById(id);
