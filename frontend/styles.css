@@ -57,7 +57,8 @@ body{
   padding: 10px 6px;
   position: sticky;
   top: 0;
-  z-index: 5;
+  /* Keep the app title above the expanded chat overlay */
+  z-index: 20;
   backdrop-filter: blur(16px);
   background: linear-gradient(180deg, rgba(5,10,22,.70), rgba(5,10,22,.18));
   border-bottom: 1px solid rgba(255,255,255,.08);
@@ -244,24 +245,26 @@ body{
   /* Bottom-pinned overlay: can rise over the hero/title */
   position: fixed;
   left: 50%;
+  top: 92px;
   bottom: 18px;
   transform: translateX(-50%);
   margin-top: 0;
   /* Keep a bit of breathing room from the viewport edges */
   width: min(820px, calc(100vw - 36px));
-  height: min(78vh, 720px);
-  z-index: 6;
+  height: calc(100vh - 92px - 18px);
+  z-index: 10;
 }
 
 .chat.is-expanding{
   position: fixed;
   left: 50%;
+  top: 92px;
   bottom: 18px;
   transform: translateX(-50%);
   margin-top: 0;
   width: min(820px, calc(100vw - 36px));
-  height: min(78vh, 720px);
-  z-index: 6;
+  height: calc(100vh - 92px - 18px);
+  z-index: 10;
 }
 
 .chat.is-collapsed{
