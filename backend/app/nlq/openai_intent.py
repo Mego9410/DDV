@@ -1,11 +1,47 @@
 from __future__ import annotations
 
 import json
+from functools import lru_cache
 from typing import Any
 
+import httpx
 from openai import OpenAI
 
+from app.core.config import get_settings
 from app.nlq.intent_schema import QueryIntent
+
+
+@lru_cache(maxsize=1)
+def _cached_supabase_openai_key() -> str | None:
+    """
+    Best-effort secret fetch from Supabase. Cached to avoid a network call
+    on every request.
+    """
+    settings = get_settings()
+    if not settings.supabase_url or not settings.supabase_service_role_key:
+        return None
+
+    url = settings.supabase_url.rstrip("/")
+    table = settings.supabase_secret_table
+    headers = {
+        "apikey": settings.supabase_service_role_key,
+        "Authorization": f"Bearer {settings.supabase_service_role_key}",
+    }
+
+    params = {"select": "value", "key": "eq.openai_api_key", "limit": "1"}
+    try:
+        resp = httpx.get(f"{url}/rest/v1/{table}", headers=headers, params=params, timeout=10.0)
+    except Exception:
+        return None
+    if not resp.is_success:
+        return None
+    data = resp.json()
+    if not data:
+        return None
+    value = data[0].get("value")
+    if not isinstance(value, str) or not value.strip():
+        return None
+    return value.strip()
 
 
 def generate_intent(*, question: str, allow_group_by: bool = False) -> QueryIntent:
@@ -15,15 +51,15 @@ def generate_intent(*, question: str, allow_group_by: bool = False) -> QueryInte
     - we validate the produced JSON with Pydantic (allowlist fields/ops/metrics)
     - if invalid, we raise ValueError and the caller should log as blocked/error
     """
-    from app.core.config import get_settings
-
     settings = get_settings()
-    if not settings.openai_api_key:
+    api_key = settings.openai_api_key or _cached_supabase_openai_key()
+    if not api_key:
         raise RuntimeError(
-            "Missing OpenAI configuration. Set OPENAI_API_KEY on the backend environment (server-side)."
+            "Missing OpenAI configuration. Set OPENAI_API_KEY on the backend environment, "
+            "or store it in Supabase (app_secrets key='openai_api_key') and set SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY."
         )
 
-    client = OpenAI(api_key=settings.openai_api_key)
+    client = OpenAI(api_key=api_key)
 
     system = """You translate questions into a strict JSON object for querying a Postgres table named 'practices'.
 
