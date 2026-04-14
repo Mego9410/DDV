@@ -11,6 +11,12 @@ backend/scripts/__pycache__/
 data/
 exports/
 
+# derived/supplied practice data (keep in Supabase only)
+field_map.json
+smoke_calc_extract.json
+workbook_inspection*.json
+tools/*.json
+
 # local DB / runtime artifacts
 backend/dev.db
 backend/*.sqlite
