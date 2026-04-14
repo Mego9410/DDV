@@ -152,6 +152,7 @@ Rules:
 - For county and city, use title case (e.g. "Kent", "Essex", "London").
 - If the user says "in London" (or another city), treat it as a city filter (field="city"), not county.
 - If the user asks about "number of surgeries" / "surgeries per practice", use metric="surgery_count".
+- If the user asks about "income" / "turnover" / "revenue", use metric="turnover_gbp" (GBP).
 - Use limit <= 200 unless asked for more.
 - If the user asks for "most"/"top"/"highest" within a group (e.g. "Which county has the most practices?"), set group_by=["county"], agg="count", metric="practice_count", order_by={"by":"value","dir":"desc"}, and limit=1.
 - If the user asks "list counties" or "what counties do we have", set group_by=["county"], agg="count", metric="practice_count", order_by={"by":"county","dir":"asc"}, and limit=1000.
@@ -203,7 +204,7 @@ Rules:
     }
 
     function metricLabel(m) {
-      if (m === "turnover_gbp") return "turnover";
+      if (m === "turnover_gbp") return "income (turnover)";
       if (m === "surgery_count") return "surgery count";
       if (m === "associate_cost_amount") return "associate cost";
       if (m === "associate_cost_pct") return "associate cost (%)";
