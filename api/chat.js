@@ -3,6 +3,9 @@ const { fetchSecret, callRpc } = require("./_lib/supabase");
 const { verifyAccessToken } = require("./_lib/token");
 
 const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET || "";
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SUPABASE_PRACTICES_TABLE = process.env.SUPABASE_PRACTICES_TABLE || "practices";
 
 function extractJsonObject(text) {
   if (!text) return "";
@@ -27,6 +30,66 @@ function getBearerToken(req) {
   return s.slice(7).trim();
 }
 
+function isCountyListQuestion(message) {
+  const m = String(message || "").toLowerCase();
+  if (!m.includes("county")) return false;
+  return (
+    m.includes("what are") ||
+    m.includes("which") ||
+    m.includes("list") ||
+    m.includes("show") ||
+    m.includes("counties") ||
+    m.includes("locations")
+  );
+}
+
+function supabaseHeaders() {
+  if (!SUPABASE_URL) {
+    const err = new Error("Missing server env: SUPABASE_URL");
+    err.statusCode = 500;
+    throw err;
+  }
+  if (!SUPABASE_SERVICE_ROLE_KEY) {
+    const err = new Error("Missing server env: SUPABASE_SERVICE_ROLE_KEY");
+    err.statusCode = 500;
+    throw err;
+  }
+  return {
+    apikey: SUPABASE_SERVICE_ROLE_KEY,
+    Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+  };
+}
+
+async function fetchDistinctCounties() {
+  const url = SUPABASE_URL.replace(/\/$/, "");
+  const endpoint = `${url}/rest/v1/${SUPABASE_PRACTICES_TABLE}`;
+  const params = new URLSearchParams({
+    select: "county",
+    "county": "is.not.null",
+    order: "county.asc",
+    limit: "10000",
+  });
+  const resp = await fetch(`${endpoint}?${params.toString()}`, { headers: supabaseHeaders() });
+  const text = await resp.text();
+  if (!resp.ok) {
+    const err = new Error(text || `Supabase query failed (${resp.status})`);
+    err.statusCode = 500;
+    throw err;
+  }
+  const rows = text ? JSON.parse(text) : [];
+  const out = [];
+  const seen = new Set();
+  for (const r of Array.isArray(rows) ? rows : []) {
+    const c = typeof r?.county === "string" ? r.county.trim() : "";
+    if (!c) continue;
+    const k = c.toLowerCase();
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(c);
+  }
+  return out;
+}
+
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ detail: "Method not allowed" });
   try {
@@ -39,6 +102,21 @@ module.exports = async function handler(req, res) {
     const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
     const message = String(body?.message ?? "").trim();
     if (!message) return res.status(400).json({ detail: "Missing message" });
+
+    // Lightweight "dimension listing" support without changing the DB RPC.
+    // The current ddv_query_intent only returns numeric aggregates.
+    if (isCountyListQuestion(message)) {
+      const t0 = Date.now();
+      const counties = await fetchDistinctCounties();
+      const latency_ms = Date.now() - t0;
+      if (!counties.length) {
+        return res.status(200).json({ answer: "No results found for that question.", value: null, intent: null, latency_ms });
+      }
+      const preview = counties.slice(0, 30);
+      const suffix = counties.length > preview.length ? ` (and ${counties.length - preview.length} more)` : "";
+      const answer = `Counties (${counties.length}): ${preview.join(", ")}${suffix}.`;
+      return res.status(200).json({ answer, value: counties.length, intent: { kind: "distinct", field: "county" }, latency_ms });
+    }
 
     const apiKey = process.env.OPENAI_API_KEY || (await fetchSecret("openai_api_key"));
     if (!apiKey) {
