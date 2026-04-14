@@ -3,6 +3,8 @@ backend/.venv/
 backend/__pycache__/
 backend/app/**/__pycache__/
 backend/*.log
+backend/scripts/__pycache__/
+.pyc
 .pytest_cache/
 
 # data volumes / local storage
