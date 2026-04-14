@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DDV — Ask your data</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="bg" aria-hidden="true"></div>
+
+    <main class="shell">
+      <header class="topbar">
+        <div class="brand">
+          <div class="logo" aria-hidden="true"></div>
+          <span class="brand-name">DDV</span>
+        </div>
+        <nav class="actions">
+          <button class="btn btn-ghost" id="btnLogout" type="button" hidden>Log out</button>
+        </nav>
+      </header>
+
+      <section class="hero" id="hero">
+        <h1 class="hero-title">The Dental Data Vault</h1>
+        <div class="hero-subtitle">Ask a question about the dataset. No history is saved.</div>
+
+        <div class="composer-card" id="composerCard">
+          <div class="composer-top">
+            <span class="composer-hint" id="composerHint">Ask a question about the dataset</span>
+          </div>
+
+          <form class="composer" id="composerForm">
+            <button class="icon-btn" id="btnPlus" type="button" aria-label="Add" disabled>
+              +
+            </button>
+            <input
+              class="composer-input"
+              id="composerInput"
+              type="text"
+              autocomplete="off"
+              placeholder="Ask a question about the data…"
+            />
+            <button class="send-btn" id="btnSend" type="submit" aria-label="Send">
+              <span class="send-dot" aria-hidden="true"></span>
+            </button>
+          </form>
+        </div>
+      </section>
+
+      <section class="chat" id="chat" hidden>
+        <div class="chat-header">
+          <div class="chat-title">Chat</div>
+          <div class="chat-meta" id="chatMeta">No history is saved.</div>
+        </div>
+        <div class="chat-scroll" id="chatScroll" role="log" aria-live="polite"></div>
+        <div class="chat-composer">
+          <form class="composer composer--chat" id="chatForm">
+            <input
+              class="composer-input"
+              id="chatInput"
+              type="text"
+              autocomplete="off"
+              placeholder="Ask another question…"
+            />
+            <button class="send-btn" id="chatSend" type="submit" aria-label="Send">
+              <span class="send-dot" aria-hidden="true"></span>
+            </button>
+          </form>
+          <div class="fineprint">Tip: Ask for “avg”, “median”, “min”, “max”, or “count” style questions.</div>
+        </div>
+      </section>
+    </main>
+
+    <dialog class="modal" id="passwordModal">
+      <form method="dialog" class="modal-card" id="passwordForm">
+        <div class="modal-title">Enter access password</div>
+        <div class="modal-subtitle">This app uses a single shared password. No accounts.</div>
+        <input class="modal-input" id="passwordInput" type="password" placeholder="Password" />
+        <div class="modal-actions">
+          <button class="btn btn-primary" id="passwordSubmit" value="ok">Continue</button>
+        </div>
+        <div class="modal-error" id="passwordError" hidden></div>
+      </form>
+    </dialog>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
+

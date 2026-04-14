@@ -1,0 +1,21 @@
+backend/.env
+backend/.venv/
+backend/__pycache__/
+backend/app/**/__pycache__/
+backend/*.log
+.pytest_cache/
+
+# data volumes / local storage
+data/
+exports/
+
+# local DB / runtime artifacts
+backend/dev.db
+backend/*.sqlite
+backend/*.sqlite3
+
+# frontend artifacts
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
