@@ -176,11 +176,20 @@ async function handleFirstQuestion(q, { _retriedAfterAuth } = {}) {
     const out = await sendMessage(q);
     // Replace last AI bubble
     chatScroll.lastChild.textContent = out.answer;
-    const meta = `Latency: ${out.latency_ms}ms`;
+    const suggestions =
+      out?.needs_clarification && Array.isArray(out?.suggestions) && out.suggestions.length
+        ? `Suggestions: ${out.suggestions.slice(0, 3).join(" · ")}`
+        : "";
+    const meta = suggestions ? `${suggestions}  |  Latency: ${out.latency_ms}ms` : `Latency: ${out.latency_ms}ms`;
     const m = document.createElement("div");
     m.className = "meta";
     m.textContent = meta;
     chatScroll.lastChild.appendChild(m);
+
+    if (out?.needs_clarification) {
+      // Keep the conversation going: focus input so user can answer immediately.
+      setTimeout(() => chatInput?.focus(), 50);
+    }
   } catch (err) {
     // Expired tokens are expected; prompt for password and retry once.
     if (err?.authExpired && !_retriedAfterAuth) {

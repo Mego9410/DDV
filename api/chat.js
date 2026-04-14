@@ -180,7 +180,14 @@ module.exports = async function handler(req, res) {
 
     const system = `You translate questions into a strict JSON object for querying a Postgres table named 'practices'.
 
-Return ONLY valid JSON that matches this schema:
+If the question is ambiguous or underspecified, you MUST ask a clarifying question first by returning ONLY JSON:
+{
+  "clarify": "<your question to the user>",
+  "suggestions": ["<suggestion 1>", "<suggestion 2>", "<suggestion 3>"]
+}
+Do NOT include metric/agg/filters when you return "clarify", and do NOT request or reveal any raw rows.
+
+Otherwise, return ONLY valid JSON that matches this schema:
 {
   "metric": "associate_cost_amount" | "associate_cost_pct",
   "agg": "avg" | "median" | "min" | "max" | "count",
@@ -197,7 +204,7 @@ Rules:
 - For county, use title case (e.g. "Kent").
 - Use limit <= 200 unless asked for more.
 - If asked for an average, use agg="avg" and metric accordingly.
-- If the user asks a question you cannot represent with the schema, still return JSON but set agg="count", metric="associate_cost_amount", and add no filters.`;
+- If the user asks a question you cannot represent with the schema, return a "clarify" question instead.`;
 
     const t0 = Date.now();
     const resp = await client.responses.create({
@@ -215,6 +222,19 @@ Rules:
       intent = JSON.parse(extracted);
     } catch (e) {
       return res.status(400).json({ detail: `LLM returned non-JSON: ${String(e)}. Text=${text.slice(0, 300)}` });
+    }
+
+    if (intent && typeof intent === "object" && typeof intent.clarify === "string" && intent.clarify.trim()) {
+      const latency_ms = Date.now() - t0;
+      const suggestions = Array.isArray(intent.suggestions) ? intent.suggestions.filter((s) => typeof s === "string" && s.trim()) : [];
+      return res.status(200).json({
+        answer: intent.clarify.trim(),
+        value: null,
+        intent: { kind: "clarify", clarify: intent.clarify.trim(), suggestions },
+        needs_clarification: true,
+        suggestions,
+        latency_ms,
+      });
     }
 
     // Execute against Supabase via RPC to avoid returning raw practice rows.
