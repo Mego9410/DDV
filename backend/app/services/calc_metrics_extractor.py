@@ -79,13 +79,40 @@ class CalcMetricsExtractor:
         name = None
         addr = None
         conf = 0.0
-        for l in lines[:10]:
+        # Addresses often wrap across multiple rows/cells. We capture the "Practice address"
+        # line and then append the next few non-empty lines that look like address continuations.
+        def looks_like_continuation(s: str) -> bool:
+            sl = s.strip().lower()
+            if not sl:
+                return False
+            if sl.startswith("practice of") or "practice address" in sl:
+                return False
+            # stop at obvious section headers / non-address text
+            if "valuation" in sl or "method" in sl or "methods" in sl:
+                return False
+            if sl in {"values", "value"} or sl.startswith("values "):
+                return False
+            if "calculation methods" in sl or "calculation method" in sl:
+                return False
+            if "calculation" in sl and "address" not in sl:
+                return False
+            return True
+
+        scan = lines[:12]
+        for i, l in enumerate(scan):
             ll = l.lower()
             if ll.startswith("practice of"):
                 name = l.split(":", 1)[1].strip() if ":" in l else l.replace("Practice of", "").strip()
                 conf += 0.5
             if "practice address" in ll:
-                addr = l.split(":", 1)[1].strip() if ":" in l else l.replace("Practice address", "").strip()
+                base = l.split(":", 1)[1].strip() if ":" in l else l.replace("Practice address", "").strip()
+                cont: list[str] = []
+                # pull up to 3 continuation lines (usually street/town/county/postcode)
+                for nxt in scan[i + 1 : i + 4]:
+                    if looks_like_continuation(nxt):
+                        cont.append(nxt.strip())
+                joined = ", ".join([x for x in [base] + cont if x])
+                addr = joined
                 conf += 0.5
         if name or addr:
             conf = min(1.0, conf + 0.2)
@@ -529,6 +556,7 @@ class CalcMetricsExtractor:
     def _extract_uda_block(self, df: pd.DataFrame) -> list[MetricHit]:
         """
         Extract UDA figures from the 'NHS CONTRACT NUMBER' block:
+        - nhs_contract_number
         - uda_contract_value_gbp
         - uda_count
         - uda_rate_gbp
@@ -540,6 +568,26 @@ class CalcMetricsExtractor:
         if anchor is None:
             return hits
         ar, ac = anchor
+
+        # Attempt to capture the contract number (usually the value in the cell to the right).
+        try:
+            v = df.iat[ar, min(ac + 1, df.shape[1] - 1)] if df.shape[1] > 0 else None
+            t = self._cell_to_text(v).strip()
+            if t and len(t) <= 80 and re.search(r"\d", t):
+                hits.append(
+                    MetricHit(
+                        metric_key="nhs_contract_number",
+                        metric_label="NHS contract number",
+                        value_number=None,
+                        value_text=t,
+                        unit=None,
+                        confidence=0.85,
+                        row=ar,
+                        col=min(ac + 1, df.shape[1] - 1),
+                    )
+                )
+        except Exception:
+            pass
 
         # Search a small region beneath for a row containing "UDA" and "£UDA"
         for r in range(ar, min(ar + 12, df.shape[0])):

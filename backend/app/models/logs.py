@@ -5,6 +5,7 @@ from typing import Any, Optional
 from uuid import UUID, uuid4
 
 from sqlalchemy import Column
+from sqlalchemy import String
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlmodel import Field, SQLModel
 
@@ -20,8 +21,8 @@ class ExtractionLog(SQLModel, table=True):
     accounts_period_end: Optional[date] = Field(default=None, index=True)
 
     field_confidence: dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSONB, nullable=False))
-    missing_fields: list[str] = Field(default_factory=list, sa_column=Column(ARRAY(str), nullable=False))
-    low_conf_fields: list[str] = Field(default_factory=list, sa_column=Column(ARRAY(str), nullable=False))
+    missing_fields: list[str] = Field(default_factory=list, sa_column=Column(ARRAY(String), nullable=False))
+    low_conf_fields: list[str] = Field(default_factory=list, sa_column=Column(ARRAY(String), nullable=False))
     evidence: Optional[dict[str, Any]] = Field(default=None, sa_column=Column(JSONB, nullable=True))
     notes: Optional[str] = None
 
@@ -42,6 +43,6 @@ class RequestLog(SQLModel, table=True):
     status: str = Field(default="ok", index=True)  # ok|no_results|error|blocked
     row_count: Optional[int] = None
     latency_ms: Optional[int] = None
-    warnings: list[str] = Field(default_factory=list, sa_column=Column(ARRAY(str), nullable=False))
+    warnings: list[str] = Field(default_factory=list, sa_column=Column(ARRAY(String), nullable=False))
     error_message: Optional[str] = None
 

@@ -5,7 +5,9 @@ from dataclasses import dataclass
 from typing import Optional
 
 
-UK_POSTCODE_RE = re.compile(r"\b([A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2})\b", re.IGNORECASE)
+# Accept full UK postcodes and (common in spreadsheets) partially clipped inward codes
+# like "DL3 7H" (missing the final letter due to narrow cell display/formatting).
+UK_POSTCODE_RE = re.compile(r"\b([A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{1,2})\b", re.IGNORECASE)
 
 
 @dataclass(frozen=True)
@@ -31,9 +33,20 @@ def normalize_uk_address(addr: str | None) -> NormalizedAddress | None:
     if not raw:
         return None
 
+    # Drop common non-address tails that sometimes get concatenated into the same cell region.
+    # Examples: "VALUATION METHODS ...", "A - GW only based on ..."
+    stop_rx = re.compile(r"\b(valuation\s+methods?|calculation\s+methods?|a\s*-\s*gw\b)\b", re.IGNORECASE)
+    sm = stop_rx.search(raw)
+    if sm is not None:
+        raw = raw[: sm.start()].rstrip(" ,.;:-")
+
     # Postcode
     m = UK_POSTCODE_RE.search(raw.upper())
     postcode = m.group(1) if m else None
+    if m is not None:
+        # Truncate anything after the postcode. Some sheets have adjacent headers/notes
+        # that get concatenated into the same "address" line.
+        raw = raw[: m.end()].rstrip(" ,.;:-")
 
     # Tokenize by commas
     parts = [p.strip() for p in raw.split(",") if p.strip()]

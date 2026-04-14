@@ -85,6 +85,47 @@ def main() -> None:
                     elif incoming_end is not None and existing.accounts_period_end is not None and incoming_end > existing.accounts_period_end:
                         should_update = True
 
+                    # Backfill newly-added columns even when period_end hasn't advanced.
+                    if not should_update:
+                        backfill_fields = [
+                            "city",
+                            "address_line1",
+                            "address_line2",
+                            "goodwill",
+                            "efandf",
+                            "total",
+                            "freehold",
+                            "grand_total",
+                            "nhs_contract_number",
+                            "uda_contract_value_gbp",
+                            "uda_count",
+                            "uda_rate_gbp",
+                            "uda_uplift_value_gbp",
+                            "income_split_fpi_percent",
+                            "income_split_fpi_value",
+                            "income_split_fpi_applied_percent",
+                            "income_split_fpi_applied_value",
+                            "income_split_nhs_percent",
+                            "income_split_nhs_value",
+                            "income_split_nhs_applied_percent",
+                            "income_split_nhs_applied_value",
+                            "income_split_denplan_percent",
+                            "income_split_denplan_value",
+                            "income_split_denplan_applied_percent",
+                            "income_split_denplan_applied_value",
+                            "income_split_rent_percent",
+                            "income_split_rent_value",
+                            "income_split_rent_applied_percent",
+                            "income_split_rent_applied_value",
+                        ]
+                        for f in backfill_fields:
+                            incoming_val = mat.get(f) if f in mat else pr.get(f)
+                            if incoming_val is None:
+                                continue
+                            if getattr(existing, f, None) is None:
+                                should_update = True
+                                break
+
                 # Always write extraction log entry
                 elog = ExtractionLog(
                     practice_key=practice_key,
@@ -113,10 +154,94 @@ def main() -> None:
                     existing.address_text = to_text(pr.get("address_text"))
                     existing.postcode = to_text(pr.get("postcode"))
                     existing.county = to_text(pr.get("county"))
+                    existing.city = to_text(pr.get("city"))
+                    existing.address_line1 = to_text(pr.get("address_line1"))
+                    existing.address_line2 = to_text(pr.get("address_line2"))
+                    existing.visited_on = to_date(mat.get("visited_on"))
                     existing.surgery_count = mat.get("surgery_count")
+
+                    # Core valuation metrics
+                    existing.goodwill = _to_float(mat.get("goodwill"))
+                    existing.efandf = _to_float(mat.get("efandf"))
+                    existing.total = _to_float(mat.get("total"))
+                    existing.freehold = _to_float(mat.get("freehold"))
+                    existing.grand_total = _to_float(mat.get("grand_total"))
+
+                    # NHS contract details
+                    existing.nhs_contract_number = to_text(mat.get("nhs_contract_number"))
+                    existing.uda_contract_value_gbp = _to_float(mat.get("uda_contract_value_gbp"))
+                    existing.uda_count = _to_float(mat.get("uda_count"))
+                    existing.uda_rate_gbp = _to_float(mat.get("uda_rate_gbp"))
+                    existing.uda_uplift_value_gbp = _to_float(mat.get("uda_uplift_value_gbp"))
+
+                    # Income split (selected common types)
+                    existing.income_split_fpi_percent = _to_float(mat.get("income_split_fpi_percent"))
+                    existing.income_split_fpi_value = _to_float(mat.get("income_split_fpi_value"))
+                    existing.income_split_fpi_applied_percent = _to_float(mat.get("income_split_fpi_applied_percent"))
+                    existing.income_split_fpi_applied_value = _to_float(mat.get("income_split_fpi_applied_value"))
+
+                    existing.income_split_nhs_percent = _to_float(mat.get("income_split_nhs_percent"))
+                    existing.income_split_nhs_value = _to_float(mat.get("income_split_nhs_value"))
+                    existing.income_split_nhs_applied_percent = _to_float(mat.get("income_split_nhs_applied_percent"))
+                    existing.income_split_nhs_applied_value = _to_float(mat.get("income_split_nhs_applied_value"))
+
+                    existing.income_split_denplan_percent = _to_float(mat.get("income_split_denplan_percent"))
+                    existing.income_split_denplan_value = _to_float(mat.get("income_split_denplan_value"))
+                    existing.income_split_denplan_applied_percent = _to_float(mat.get("income_split_denplan_applied_percent"))
+                    existing.income_split_denplan_applied_value = _to_float(mat.get("income_split_denplan_applied_value"))
+
+                    existing.income_split_rent_percent = _to_float(mat.get("income_split_rent_percent"))
+                    existing.income_split_rent_value = _to_float(mat.get("income_split_rent_value"))
+                    existing.income_split_rent_applied_percent = _to_float(mat.get("income_split_rent_applied_percent"))
+                    existing.income_split_rent_applied_value = _to_float(mat.get("income_split_rent_applied_value"))
+
                     existing.associate_cost_amount = _to_float(mat.get("associate_cost_amount"))
                     existing.associate_cost_pct = _to_float(mat.get("associate_cost_pct"))
                     existing.accounts_period_end = incoming_end
+
+                    # Certified accounts (latest + prev)
+                    existing.certified_accounts_period_end_prev = to_date(mat.get("certified_accounts_period_end_prev"))
+
+                    existing.cert_income_gbp = _to_float(mat.get("cert_income_gbp"))
+                    existing.cert_income_percent = _to_float(mat.get("cert_income_percent"))
+                    existing.cert_income_gbp_prev = _to_float(mat.get("cert_income_gbp_prev"))
+                    existing.cert_income_percent_prev = _to_float(mat.get("cert_income_percent_prev"))
+
+                    existing.cert_other_inc_gbp = _to_float(mat.get("cert_other_inc_gbp"))
+                    existing.cert_other_inc_percent = _to_float(mat.get("cert_other_inc_percent"))
+                    existing.cert_other_inc_gbp_prev = _to_float(mat.get("cert_other_inc_gbp_prev"))
+                    existing.cert_other_inc_percent_prev = _to_float(mat.get("cert_other_inc_percent_prev"))
+
+                    existing.cert_associates_gbp = _to_float(mat.get("cert_associates_gbp"))
+                    existing.cert_associates_percent = _to_float(mat.get("cert_associates_percent"))
+                    existing.cert_associates_gbp_prev = _to_float(mat.get("cert_associates_gbp_prev"))
+                    existing.cert_associates_percent_prev = _to_float(mat.get("cert_associates_percent_prev"))
+
+                    existing.cert_wages_gbp = _to_float(mat.get("cert_wages_gbp"))
+                    existing.cert_wages_percent = _to_float(mat.get("cert_wages_percent"))
+                    existing.cert_wages_gbp_prev = _to_float(mat.get("cert_wages_gbp_prev"))
+                    existing.cert_wages_percent_prev = _to_float(mat.get("cert_wages_percent_prev"))
+
+                    existing.cert_hygiene_gbp = _to_float(mat.get("cert_hygiene_gbp"))
+                    existing.cert_hygiene_percent = _to_float(mat.get("cert_hygiene_percent"))
+                    existing.cert_hygiene_gbp_prev = _to_float(mat.get("cert_hygiene_gbp_prev"))
+                    existing.cert_hygiene_percent_prev = _to_float(mat.get("cert_hygiene_percent_prev"))
+
+                    existing.cert_materials_gbp = _to_float(mat.get("cert_materials_gbp"))
+                    existing.cert_materials_percent = _to_float(mat.get("cert_materials_percent"))
+                    existing.cert_materials_gbp_prev = _to_float(mat.get("cert_materials_gbp_prev"))
+                    existing.cert_materials_percent_prev = _to_float(mat.get("cert_materials_percent_prev"))
+
+                    existing.cert_labs_gbp = _to_float(mat.get("cert_labs_gbp"))
+                    existing.cert_labs_percent = _to_float(mat.get("cert_labs_percent"))
+                    existing.cert_labs_gbp_prev = _to_float(mat.get("cert_labs_gbp_prev"))
+                    existing.cert_labs_percent_prev = _to_float(mat.get("cert_labs_percent_prev"))
+
+                    existing.cert_net_profit_gbp = _to_float(mat.get("cert_net_profit_gbp"))
+                    existing.cert_net_profit_percent = _to_float(mat.get("cert_net_profit_percent"))
+                    existing.cert_net_profit_gbp_prev = _to_float(mat.get("cert_net_profit_gbp_prev"))
+                    existing.cert_net_profit_percent_prev = _to_float(mat.get("cert_net_profit_percent_prev"))
+
                     existing.source_file = to_text(payload.get("source_file"))
                     existing.raw_json = payload
                     existing.updated_at = now

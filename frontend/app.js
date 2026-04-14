@@ -114,6 +114,13 @@ async function sendMessage(message) {
   });
   if (!resp.ok) {
     const t = await resp.text();
+    // If the token has expired (or is missing/invalid), force re-auth.
+    if (resp.status === 401) {
+      const err = new Error(t || "Unauthorized");
+      err.authExpired = true;
+      err.statusCode = 401;
+      throw err;
+    }
     throw new Error(t || `Chat failed (${resp.status})`);
   }
   return await resp.json();
@@ -159,7 +166,7 @@ btnLogout.addEventListener("click", () => {
   ensureAuthed();
 });
 
-async function handleFirstQuestion(q) {
+async function handleFirstQuestion(q, { _retriedAfterAuth } = {}) {
   // Once the user starts chatting, we only need the chat composer.
   if (composerCard) composerCard.hidden = true;
   expandChatFromHero();
@@ -175,6 +182,22 @@ async function handleFirstQuestion(q) {
     m.textContent = meta;
     chatScroll.lastChild.appendChild(m);
   } catch (err) {
+    // Expired tokens are expected; prompt for password and retry once.
+    if (err?.authExpired && !_retriedAfterAuth) {
+      const msg = String(err?.message || err || "");
+      // Only auto-reauth on a clear expiry signal to avoid loops.
+      if (msg.includes("Token expired") || msg.includes("Missing bearer token") || msg.includes("Invalid token")) {
+        clearToken();
+        setLoggedInUI(false);
+        await ensureAuthed();
+        if (getToken()) {
+          // Remove the "Thinking…" bubble before retrying.
+          if (chatScroll.lastChild) chatScroll.removeChild(chatScroll.lastChild);
+          await handleFirstQuestion(q, { _retriedAfterAuth: true });
+          return;
+        }
+      }
+    }
     chatScroll.lastChild.textContent = "Something went wrong. Please try again.";
     const m = document.createElement("div");
     m.className = "meta";
