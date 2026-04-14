@@ -43,6 +43,13 @@ function isCountyListQuestion(message) {
   );
 }
 
+function isAverageUdaRateQuestion(message) {
+  const m = String(message || "").toLowerCase();
+  if (!m.includes("uda")) return false;
+  if (!m.includes("rate")) return false;
+  return m.includes("average") || m.includes("avg") || m.includes("mean");
+}
+
 function supabaseHeaders() {
   if (!SUPABASE_URL) {
     const err = new Error("Missing server env: SUPABASE_URL");
@@ -90,6 +97,33 @@ async function fetchDistinctCounties() {
   return out;
 }
 
+async function fetchAvgUdaRateGbp() {
+  const url = SUPABASE_URL.replace(/\/$/, "");
+  const endpoint = `${url}/rest/v1/${SUPABASE_PRACTICES_TABLE}`;
+  const params = new URLSearchParams({
+    select: "uda_rate_gbp",
+    uda_rate_gbp: "not.is.null",
+    limit: "10000",
+  });
+  const resp = await fetch(`${endpoint}?${params.toString()}`, { headers: supabaseHeaders() });
+  const text = await resp.text();
+  if (!resp.ok) {
+    const err = new Error(text || `Supabase query failed (${resp.status})`);
+    err.statusCode = 500;
+    throw err;
+  }
+  const rows = text ? JSON.parse(text) : [];
+  let sum = 0;
+  let n = 0;
+  for (const r of Array.isArray(rows) ? rows : []) {
+    const v = Number(r?.uda_rate_gbp);
+    if (!Number.isFinite(v)) continue;
+    sum += v;
+    n += 1;
+  }
+  return { avg: n ? sum / n : null, count: n };
+}
+
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ detail: "Method not allowed" });
   try {
@@ -116,6 +150,22 @@ module.exports = async function handler(req, res) {
       const suffix = counties.length > preview.length ? ` (and ${counties.length - preview.length} more)` : "";
       const answer = `Counties (${counties.length}): ${preview.join(", ")}${suffix}.`;
       return res.status(200).json({ answer, value: counties.length, intent: { kind: "distinct", field: "county" }, latency_ms });
+    }
+
+    if (isAverageUdaRateQuestion(message)) {
+      const t0 = Date.now();
+      const { avg, count } = await fetchAvgUdaRateGbp();
+      const latency_ms = Date.now() - t0;
+      if (avg === null) {
+        return res
+          .status(200)
+          .json({ answer: "No results found for that question.", value: null, intent: { kind: "avg", field: "uda_rate_gbp" }, latency_ms });
+      }
+      const rounded = Math.round(avg * 100) / 100;
+      const answer = `Average UDA rate is £${rounded} (from ${count} practices with a UDA rate).`;
+      return res
+        .status(200)
+        .json({ answer, value: avg, intent: { kind: "avg", field: "uda_rate_gbp", count }, latency_ms });
     }
 
     const apiKey = process.env.OPENAI_API_KEY || (await fetchSecret("openai_api_key"));
