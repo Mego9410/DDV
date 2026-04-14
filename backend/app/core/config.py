@@ -34,6 +34,9 @@ class Settings(BaseSettings):
     # CORS (comma-separated origins). Default: allow all in dev.
     cors_origins: str = "*"
 
+    # LLM (server-side only)
+    openai_api_key: str | None = None
+
     fuzzy_match_enabled: bool = True
     fuzzy_match_threshold: int = 85
     low_confidence_threshold: float = 0.7

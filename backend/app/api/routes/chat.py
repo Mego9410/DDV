@@ -133,6 +133,9 @@ def chat(body: ChatIn) -> ChatOut:
         intent_json = intent.model_dump()
         with Session(engine) as session:
             out = _execute_intent(session, intent)
+    except RuntimeError as e:
+        # e.g. missing OPENAI_API_KEY on the backend environment
+        raise HTTPException(status_code=503, detail=str(e)) from e
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
 

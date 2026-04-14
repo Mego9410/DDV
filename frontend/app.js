@@ -11,6 +11,7 @@ const chat = el("chat");
 const chatScroll = el("chatScroll");
 const composerForm = el("composerForm");
 const composerInput = el("composerInput");
+const composerCard = el("composerCard");
 const chatForm = el("chatForm");
 const chatInput = el("chatInput");
 const btnLogout = el("btnLogout");
@@ -37,12 +38,14 @@ function setLoggedInUI(loggedIn) {
   if (loggedIn) {
     // Start in "small composer" mode. Chat stays collapsed until first submit.
     hero.hidden = false;
+    if (composerCard) composerCard.hidden = false;
     chat.hidden = false;
     chat.classList.add("is-collapsed");
     chat.classList.remove("is-expanding", "is-expanded");
     setTimeout(() => composerInput?.focus(), 50);
   } else {
     hero.hidden = false;
+    if (composerCard) composerCard.hidden = false;
     chat.hidden = true;
     setTimeout(() => composerInput?.focus(), 50);
   }
@@ -153,6 +156,8 @@ btnLogout.addEventListener("click", () => {
 });
 
 async function handleFirstQuestion(q) {
+  // Once the user starts chatting, we only need the chat composer.
+  if (composerCard) composerCard.hidden = true;
   expandChatFromHero();
   addBubble("user", q);
   addBubble("ai", "Thinking…");

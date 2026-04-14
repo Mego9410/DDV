@@ -15,7 +15,15 @@ def generate_intent(*, question: str, allow_group_by: bool = False) -> QueryInte
     - we validate the produced JSON with Pydantic (allowlist fields/ops/metrics)
     - if invalid, we raise ValueError and the caller should log as blocked/error
     """
-    client = OpenAI()
+    from app.core.config import get_settings
+
+    settings = get_settings()
+    if not settings.openai_api_key:
+        raise RuntimeError(
+            "Missing OpenAI configuration. Set OPENAI_API_KEY on the backend environment (server-side)."
+        )
+
+    client = OpenAI(api_key=settings.openai_api_key)
 
     system = """You translate questions into a strict JSON object for querying a Postgres table named 'practices'.
 
