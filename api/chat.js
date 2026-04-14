@@ -197,6 +197,7 @@ module.exports = async function handler(req, res) {
 
     const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
     const message = String(body?.message ?? "").trim();
+    const messages = Array.isArray(body?.messages) ? body.messages : [];
     if (!message) return res.status(400).json({ detail: "Missing message" });
 
     // Lightweight "dimension listing" support without changing the DB RPC.
@@ -233,19 +234,8 @@ module.exports = async function handler(req, res) {
     // Practice value / valuation metrics live in practices.* columns but are not yet supported by ddv_query_intent RPC.
     // We handle the common cases here without returning raw rows.
     if (isPracticeValueQuestion(message)) {
-      const agg = requestedAgg(message);
-      // If user doesn't specify aggregation, ask before computing.
-      if (!agg || agg === "count") {
-        const latency_ms = 0;
-        return res.status(200).json({
-          answer: "For practice value, do you want the average per practice, or the total (sum) across all practices?",
-          value: null,
-          intent: { kind: "clarify", topic: "practice_value_agg" },
-          needs_clarification: true,
-          suggestions: ["Average grand total per practice", "Sum of grand totals across all practices"],
-          latency_ms,
-        });
-      }
+      // Answer-first: if the user doesn't specify an aggregation, default to avg.
+      const agg = requestedAgg(message) || "avg";
 
       const t0 = Date.now();
       const field = "grand_total";
@@ -267,6 +257,11 @@ module.exports = async function handler(req, res) {
         answer,
         value: Number(out),
         intent: { kind: agg, field, count: values.length },
+        follow_ups: [
+          "Show the total (sum) across all practices",
+          "Show the median practice value",
+          "Filter by county (e.g., Kent)",
+        ],
         latency_ms,
       });
     }
@@ -283,37 +278,34 @@ module.exports = async function handler(req, res) {
 
     const system = `You translate questions into a strict JSON object for querying a Postgres table named 'practices'.
 
-If the question is ambiguous or underspecified, you MUST ask a clarifying question first by returning ONLY JSON:
+Return ONLY valid JSON that matches this schema:
 {
-  "clarify": "<your question to the user>",
-  "suggestions": ["<suggestion 1>", "<suggestion 2>", "<suggestion 3>"]
-}
-Do NOT include metric/agg/filters when you return "clarify", and do NOT request or reveal any raw rows.
-
-Otherwise, return ONLY valid JSON that matches this schema:
-{
-  "metric": "associate_cost_amount" | "associate_cost_pct",
+  "metric": "associate_cost_amount" | "associate_cost_pct" | "surgery_count" | "turnover_gbp" | "cert_associates_gbp" | "cert_associates_percent",
   "agg": "avg" | "median" | "min" | "max" | "count",
   "filters": [
-     {"field": "county" | "surgery_count" | "accounts_period_end", "op": "=" | "in" | ">=" | "<=" | "between", "value": <any>}
+     {"field": "county" | "city" | "postcode" | "surgery_count" | "accounts_period_end" | "visited_on", "op": "=" | "in" | ">=" | "<=" | "between", "value": <any>}
   ],
-  "group_by": ["county" | "surgery_count" | "accounts_period_end"],
+  "group_by": ["county" | "city" | "postcode" | "surgery_count" | "accounts_period_end" | "visited_on"],
   "limit": <int>
 }
 
 Rules:
 - Prefer "=" for single-value filters.
 - For surgery count, use an integer.
-- For county, use title case (e.g. "Kent").
+- For county and city, use title case (e.g. "Kent", "Essex", "London").
 - Use limit <= 200 unless asked for more.
 - If asked for an average, use agg="avg" and metric accordingly.
-- If the user asks a question you cannot represent with the schema, return a "clarify" question instead.`;
+- If the user asks "how many practices" / "how many are there" / "count practices", set agg="count" and add the appropriate geography filters (county/city/postcode) if mentioned.
+- If the user asks a question you cannot represent with the schema, still return JSON but set agg="count", metric="associate_cost_amount", and add no filters.`;
 
     const t0 = Date.now();
     const resp = await client.responses.create({
       model: "gpt-4o-mini",
       input: [
         { role: "system", content: system },
+        // Include recent conversation for better intent disambiguation.
+        // Keep it bounded to avoid token blow-ups.
+        ...messages.slice(-20),
         { role: "user", content: `Question: ${message}` },
       ],
     });
@@ -327,49 +319,65 @@ Rules:
       return res.status(400).json({ detail: `LLM returned non-JSON: ${String(e)}. Text=${text.slice(0, 300)}` });
     }
 
-    if (intent && typeof intent === "object" && typeof intent.clarify === "string" && intent.clarify.trim()) {
-      const latency_ms = Date.now() - t0;
-      const suggestions = Array.isArray(intent.suggestions) ? intent.suggestions.filter((s) => typeof s === "string" && s.trim()) : [];
-      return res.status(200).json({
-        answer: intent.clarify.trim(),
-        value: null,
-        intent: { kind: "clarify", clarify: intent.clarify.trim(), suggestions },
-        needs_clarification: true,
-        suggestions,
-        latency_ms,
-      });
-    }
-
     // Execute against Supabase via RPC to avoid returning raw practice rows.
     const out = await callRpc("ddv_query_intent", { intent });
     const value = out?.value ?? null;
+    const n = out?.n ?? null;
+    const nullExcluded = out?.null_excluded ?? null;
 
-    // Natural language response (LLM) from question + computed value.
-    // If the LLM fails, fall back to a simple deterministic answer.
-    let answer = value === null ? "No results found for that question." : `Result: ${value}`;
-    try {
-      const resp2 = await client.responses.create({
-        model: "gpt-4o-mini",
-        input: [
-          {
-            role: "system",
-            content:
-              "You are a concise data assistant. Write a single-sentence natural language answer for the user. " +
-              "Do not mention SQL, JSON, models, or internal implementation. If value is null, say no results.",
-          },
-          {
-            role: "user",
-            content: JSON.stringify({ question: message, intent, value }),
-          },
-        ],
-      });
-      const nl = String(resp2.output_text || "").trim();
-      if (nl) answer = nl;
-    } catch (_) {}
+    const geoFilter = Array.isArray(intent?.filters)
+      ? intent.filters.find((f) => f && (f.field === "county" || f.field === "city" || f.field === "postcode"))
+      : null;
+    const geoLabel = geoFilter?.field ? String(geoFilter.field) : null;
+    const geoValue = geoFilter?.value != null ? String(geoFilter.value).replace(/^"|"$/g, "") : null;
+
+    function fmtNumber(x) {
+      if (x == null || x === "") return "";
+      const nn = Number(x);
+      if (!Number.isFinite(nn)) return String(x);
+      return Number.isInteger(nn) ? String(nn) : nn.toFixed(2);
+    }
+
+    function metricLabel(m) {
+      if (m === "turnover_gbp") return "turnover";
+      if (m === "surgery_count") return "surgery count";
+      if (m === "associate_cost_amount") return "associate cost";
+      if (m === "associate_cost_pct") return "associate cost (%)";
+      if (m === "cert_associates_gbp") return "associate wages (certified accounts)";
+      if (m === "cert_associates_percent") return "associate wages (% of income)";
+      return String(m || "value");
+    }
+
+    // Deterministic, answer-first response (no follow-up questions).
+    let answer;
+    if (value === null) {
+      answer = "No results found for that question.";
+    } else if (intent?.agg === "count") {
+      if (geoLabel && geoValue) {
+        const loc = geoLabel === "postcode" ? `for postcode ${geoValue}` : `in ${geoValue}`;
+        answer = `There are ${fmtNumber(value)} practices ${loc}.`;
+      } else {
+        answer = `There are ${fmtNumber(value)} practices.`;
+      }
+    } else {
+      const loc = geoLabel && geoValue ? (geoLabel === "postcode" ? ` for postcode ${geoValue}` : ` in ${geoValue}`) : "";
+      answer = `The ${intent?.agg || "avg"} ${metricLabel(intent?.metric)}${loc} is ${fmtNumber(value)}.`;
+    }
+
+    const follow_ups = [];
+    if (intent?.agg === "count") {
+      follow_ups.push("Break this down by surgery count");
+      follow_ups.push("What is the average turnover in this area?");
+      follow_ups.push("What is the median associate wage (% of income) in this area?");
+    } else {
+      follow_ups.push("Show the median instead");
+      follow_ups.push("Filter to 2-surgery practices");
+      follow_ups.push("Count practices matching these filters");
+    }
 
     const latency_ms = Date.now() - t0;
 
-    return res.status(200).json({ answer, value, intent, latency_ms });
+    return res.status(200).json({ answer, value, n, null_excluded: nullExcluded, intent, follow_ups, latency_ms });
   } catch (e) {
     const status = Number(e?.statusCode || 500);
     return res.status(status).json({ detail: String(e?.message || e) });
