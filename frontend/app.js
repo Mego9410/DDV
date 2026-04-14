@@ -213,20 +213,16 @@ async function handleFirstQuestion(q, { _retriedAfterAuth } = {}) {
     const out = await sendMessage(q);
     // Replace last AI bubble
     chatScroll.lastChild.textContent = out.answer;
-    const suggestions =
-      out?.needs_clarification && Array.isArray(out?.suggestions) && out.suggestions.length
-        ? `Suggestions: ${out.suggestions.slice(0, 3).join(" · ")}`
-        : "";
-    const meta = suggestions ? `${suggestions}  |  Latency: ${out.latency_ms}ms` : `Latency: ${out.latency_ms}ms`;
+    const followUps =
+      Array.isArray(out?.follow_ups) && out.follow_ups.length ? `Next: ${out.follow_ups.slice(0, 3).join(" · ")}` : "";
+    const meta = followUps ? `${followUps}  |  Latency: ${out.latency_ms}ms` : `Latency: ${out.latency_ms}ms`;
     const m = document.createElement("div");
     m.className = "meta";
     m.textContent = meta;
     chatScroll.lastChild.appendChild(m);
 
-    if (out?.needs_clarification) {
-      // Keep the conversation going: focus input so user can answer immediately.
-      setTimeout(() => chatInput?.focus(), 50);
-    }
+    // Keep the conversation going: focus input so user can ask a follow-on immediately.
+    setTimeout(() => chatInput?.focus(), 50);
 
     // Append assistant turn to thread after successful response
     thread = Array.isArray(thread) ? thread : [];

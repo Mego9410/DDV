@@ -55,21 +55,22 @@ module.exports = async function handler(req, res) {
 
 Return ONLY valid JSON that matches this schema:
 {
-  "metric": "associate_cost_amount" | "associate_cost_pct",
+  "metric": "associate_cost_amount" | "associate_cost_pct" | "surgery_count" | "turnover_gbp" | "cert_associates_gbp" | "cert_associates_percent",
   "agg": "avg" | "median" | "min" | "max" | "count",
   "filters": [
-     {"field": "county" | "surgery_count" | "accounts_period_end", "op": "=" | "in" | ">=" | "<=" | "between", "value": <any>}
+     {"field": "county" | "city" | "postcode" | "surgery_count" | "accounts_period_end" | "visited_on", "op": "=" | "in" | ">=" | "<=" | "between", "value": <any>}
   ],
-  "group_by": ["county" | "surgery_count" | "accounts_period_end"],
+  "group_by": ["county" | "city" | "postcode" | "surgery_count" | "accounts_period_end" | "visited_on"],
   "limit": <int>
 }
 
 Rules:
 - Prefer "=" for single-value filters.
 - For surgery count, use an integer.
-- For county, use title case (e.g. "Kent").
+- For county and city, use title case (e.g. "Kent", "Essex", "London").
 - Use limit <= 200 unless asked for more.
 - If asked for an average, use agg="avg" and metric accordingly.
+- If the user asks "how many practices" / "how many are there" / "count practices", set agg="count" and add the appropriate geography filters (county/city/postcode) if mentioned.
 - If the user asks a question you cannot represent with the schema, still return JSON but set agg="count", metric="associate_cost_amount", and add no filters.`;
 
     const t0 = Date.now();
@@ -96,33 +97,72 @@ Rules:
     // Execute against Supabase via RPC to avoid returning raw practice rows.
     const out = await callRpc("ddv_query_intent", { intent });
     const value = out?.value ?? null;
+    const n = out?.n ?? null;
+    const nullExcluded = out?.null_excluded ?? null;
 
-    // Natural language response (LLM) from question + computed value.
-    // If the LLM fails, fall back to a simple deterministic answer.
-    let answer = value === null ? "No results found for that question." : `Result: ${value}`;
-    try {
-      const resp2 = await client.responses.create({
-        model: "gpt-4o-mini",
-        input: [
-          {
-            role: "system",
-            content:
-              "You are a concise data assistant. Write a single-sentence natural language answer for the user. " +
-              "Do not mention SQL, JSON, models, or internal implementation. If value is null, say no results.",
-          },
-          {
-            role: "user",
-            content: JSON.stringify({ question: message, intent, value }),
-          },
-        ],
-      });
-      const nl = String(resp2.output_text || "").trim();
-      if (nl) answer = nl;
-    } catch (_) {}
+    const geoFilter = Array.isArray(intent?.filters)
+      ? intent.filters.find((f) => f && (f.field === "county" || f.field === "city" || f.field === "postcode"))
+      : null;
+    const geoLabel = geoFilter?.field ? String(geoFilter.field) : null;
+    const geoValue = geoFilter?.value != null ? String(geoFilter.value).replace(/^"|"$/g, "") : null;
+
+    function fmtNumber(x) {
+      if (x == null || x === "") return "";
+      const n = Number(x);
+      if (!Number.isFinite(n)) return String(x);
+      // integers as-is; otherwise 2dp
+      return Number.isInteger(n) ? String(n) : n.toFixed(2);
+    }
+
+    function metricLabel(m) {
+      if (m === "turnover_gbp") return "turnover";
+      if (m === "surgery_count") return "surgery count";
+      if (m === "associate_cost_amount") return "associate cost";
+      if (m === "associate_cost_pct") return "associate cost (%)";
+      if (m === "cert_associates_gbp") return "associate wages (certified accounts)";
+      if (m === "cert_associates_percent") return "associate wages (% of income)";
+      return String(m || "value");
+    }
+
+    // Deterministic, answer-first response (no follow-up questions).
+    let answer;
+    if (value === null) {
+      answer = "No results found for that question.";
+    } else if (intent?.agg === "count") {
+      if (geoLabel && geoValue) {
+        // "county" => "in Essex", "city" => "in London", "postcode" => "for postcode SW1A 1AA"
+        const loc = geoLabel === "postcode" ? `for postcode ${geoValue}` : `in ${geoValue}`;
+        answer = `There are ${fmtNumber(value)} practices ${loc}.`;
+      } else {
+        answer = `There are ${fmtNumber(value)} practices.`;
+      }
+    } else {
+      const loc = geoLabel && geoValue ? (geoLabel === "postcode" ? ` for postcode ${geoValue}` : ` in ${geoValue}`) : "";
+      answer = `The ${intent?.agg || "avg"} ${metricLabel(intent?.metric)}${loc} is ${fmtNumber(value)}.`;
+    }
+
+    const follow_ups = [];
+    if (intent?.agg === "count") {
+      follow_ups.push("Break this down by surgery count");
+      if (geoLabel !== "county") follow_ups.push("How many practices are in Kent?");
+      follow_ups.push("What is the average turnover in this area?");
+    } else {
+      follow_ups.push("Show the median instead");
+      follow_ups.push("Filter to 2-surgery practices");
+      follow_ups.push("Count practices matching these filters");
+    }
 
     const latency_ms = Date.now() - t0;
 
-    return res.status(200).json({ answer, value, intent, latency_ms });
+    return res.status(200).json({
+      answer,
+      value,
+      n,
+      null_excluded: nullExcluded,
+      intent,
+      follow_ups,
+      latency_ms,
+    });
   } catch (e) {
     const status = Number(e?.statusCode || 500);
     return res.status(status).json({ detail: String(e?.message || e) });
