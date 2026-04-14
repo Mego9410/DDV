@@ -30,34 +30,11 @@ function getBearerToken(req) {
   return s.slice(7).trim();
 }
 
-function isCountyListQuestion(message) {
-  const m = String(message || "").toLowerCase();
-  if (!m.includes("county")) return false;
-  return (
-    m.includes("what are") ||
-    m.includes("which") ||
-    m.includes("list") ||
-    m.includes("show") ||
-    m.includes("counties") ||
-    m.includes("locations")
-  );
-}
-
 function isAverageUdaRateQuestion(message) {
   const m = String(message || "").toLowerCase();
   if (!m.includes("uda")) return false;
   if (!m.includes("rate")) return false;
   return m.includes("average") || m.includes("avg") || m.includes("mean");
-}
-
-function isPracticeValueQuestion(message) {
-  const m = String(message || "").toLowerCase();
-  // common phrasings seen in DDV usage
-  if (m.includes("grand total")) return true;
-  if (m.includes("practice value")) return true;
-  if (m.includes("total value")) return true;
-  if (m.includes("valuation")) return true;
-  return false;
 }
 
 function requestedAgg(message) {
@@ -88,36 +65,6 @@ function supabaseHeaders() {
   };
 }
 
-async function fetchDistinctCounties() {
-  const url = SUPABASE_URL.replace(/\/$/, "");
-  const endpoint = `${url}/rest/v1/${SUPABASE_PRACTICES_TABLE}`;
-  const params = new URLSearchParams({
-    select: "county",
-    county: "not.is.null",
-    order: "county.asc",
-    limit: "10000",
-  });
-  const resp = await fetch(`${endpoint}?${params.toString()}`, { headers: supabaseHeaders() });
-  const text = await resp.text();
-  if (!resp.ok) {
-    const err = new Error(text || `Supabase query failed (${resp.status})`);
-    err.statusCode = 500;
-    throw err;
-  }
-  const rows = text ? JSON.parse(text) : [];
-  const out = [];
-  const seen = new Set();
-  for (const r of Array.isArray(rows) ? rows : []) {
-    const c = typeof r?.county === "string" ? r.county.trim() : "";
-    if (!c) continue;
-    const k = c.toLowerCase();
-    if (seen.has(k)) continue;
-    seen.add(k);
-    out.push(c);
-  }
-  return out;
-}
-
 async function fetchAvgUdaRateGbp() {
   const url = SUPABASE_URL.replace(/\/$/, "");
   const endpoint = `${url}/rest/v1/${SUPABASE_PRACTICES_TABLE}`;
@@ -145,47 +92,6 @@ async function fetchAvgUdaRateGbp() {
   return { avg: n ? sum / n : null, count: n };
 }
 
-async function fetchNumericValues(field, extraParams) {
-  const url = SUPABASE_URL.replace(/\/$/, "");
-  const endpoint = `${url}/rest/v1/${SUPABASE_PRACTICES_TABLE}`;
-  const params = new URLSearchParams({
-    select: field,
-    [field]: "not.is.null",
-    limit: "10000",
-    ...(extraParams || {}),
-  });
-  const resp = await fetch(`${endpoint}?${params.toString()}`, { headers: supabaseHeaders() });
-  const text = await resp.text();
-  if (!resp.ok) {
-    const err = new Error(text || `Supabase query failed (${resp.status})`);
-    err.statusCode = 500;
-    throw err;
-  }
-  const rows = text ? JSON.parse(text) : [];
-  const values = [];
-  for (const r of Array.isArray(rows) ? rows : []) {
-    const v = Number(r?.[field]);
-    if (!Number.isFinite(v)) continue;
-    values.push(v);
-  }
-  return values;
-}
-
-function aggNumeric(values, agg) {
-  if (!Array.isArray(values) || !values.length) return null;
-  if (agg === "count") return values.length;
-  if (agg === "sum") return values.reduce((a, b) => a + b, 0);
-  if (agg === "min") return values.reduce((a, b) => (a < b ? a : b), values[0]);
-  if (agg === "max") return values.reduce((a, b) => (a > b ? a : b), values[0]);
-  if (agg === "avg") return values.reduce((a, b) => a + b, 0) / values.length;
-  if (agg === "median") {
-    const sorted = [...values].sort((a, b) => a - b);
-    const mid = Math.floor(sorted.length / 2);
-    return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
-  }
-  return null;
-}
-
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ detail: "Method not allowed" });
   try {
@@ -199,21 +105,6 @@ module.exports = async function handler(req, res) {
     const message = String(body?.message ?? "").trim();
     const messages = Array.isArray(body?.messages) ? body.messages : [];
     if (!message) return res.status(400).json({ detail: "Missing message" });
-
-    // Lightweight "dimension listing" support without changing the DB RPC.
-    // The current ddv_query_intent only returns numeric aggregates.
-    if (isCountyListQuestion(message)) {
-      const t0 = Date.now();
-      const counties = await fetchDistinctCounties();
-      const latency_ms = Date.now() - t0;
-      if (!counties.length) {
-        return res.status(200).json({ answer: "No results found for that question.", value: null, intent: null, latency_ms });
-      }
-      const preview = counties.slice(0, 30);
-      const suffix = counties.length > preview.length ? ` (and ${counties.length - preview.length} more)` : "";
-      const answer = `Counties (${counties.length}): ${preview.join(", ")}${suffix}.`;
-      return res.status(200).json({ answer, value: counties.length, intent: { kind: "distinct", field: "county" }, latency_ms });
-    }
 
     if (isAverageUdaRateQuestion(message)) {
       const t0 = Date.now();
@@ -231,41 +122,6 @@ module.exports = async function handler(req, res) {
         .json({ answer, value: avg, intent: { kind: "avg", field: "uda_rate_gbp", count }, latency_ms });
     }
 
-    // Practice value / valuation metrics live in practices.* columns but are not yet supported by ddv_query_intent RPC.
-    // We handle the common cases here without returning raw rows.
-    if (isPracticeValueQuestion(message)) {
-      // Answer-first: if the user doesn't specify an aggregation, default to avg.
-      const agg = requestedAgg(message) || "avg";
-
-      const t0 = Date.now();
-      const field = "grand_total";
-      const values = await fetchNumericValues(field);
-      const out = aggNumeric(values, agg);
-      const latency_ms = Date.now() - t0;
-      if (out === null) {
-        return res.status(200).json({
-          answer: "No results found for that question.",
-          value: null,
-          intent: { kind: agg, field },
-          latency_ms,
-        });
-      }
-      const rounded = Math.round(Number(out) * 100) / 100;
-      const label = agg === "sum" ? "Total (sum) practice value" : agg === "avg" ? "Average practice value" : `${agg} practice value`;
-      const answer = `${label} (grand_total) is £${rounded}.`;
-      return res.status(200).json({
-        answer,
-        value: Number(out),
-        intent: { kind: agg, field, count: values.length },
-        follow_ups: [
-          "Show the total (sum) across all practices",
-          "Show the median practice value",
-          "Filter by county (e.g., Kent)",
-        ],
-        latency_ms,
-      });
-    }
-
     const apiKey = process.env.OPENAI_API_KEY || (await fetchSecret("openai_api_key"));
     if (!apiKey) {
       return res.status(503).json({
@@ -280,12 +136,13 @@ module.exports = async function handler(req, res) {
 
 Return ONLY valid JSON that matches this schema:
 {
-  "metric": "associate_cost_amount" | "associate_cost_pct" | "surgery_count" | "turnover_gbp" | "cert_associates_gbp" | "cert_associates_percent",
-  "agg": "avg" | "median" | "min" | "max" | "count",
+  "metric": "practice_count" | "associate_cost_amount" | "associate_cost_pct" | "surgery_count" | "turnover_gbp" | "cert_associates_gbp" | "cert_associates_percent" | "grand_total" | "goodwill" | "efandf" | "total" | "freehold",
+  "agg": "avg" | "median" | "min" | "max" | "count" | "sum",
   "filters": [
      {"field": "county" | "city" | "postcode" | "surgery_count" | "accounts_period_end" | "visited_on", "op": "=" | "in" | ">=" | "<=" | "between", "value": <any>}
   ],
   "group_by": ["county" | "city" | "postcode" | "surgery_count" | "accounts_period_end" | "visited_on"],
+  "order_by": {"by": "value" | "county" | "city" | "postcode" | "surgery_count" | "accounts_period_end" | "visited_on", "dir": "asc" | "desc"},
   "limit": <int>
 }
 
@@ -293,7 +150,13 @@ Rules:
 - Prefer "=" for single-value filters.
 - For surgery count, use an integer.
 - For county and city, use title case (e.g. "Kent", "Essex", "London").
+- If the user says "in London" (or another city), treat it as a city filter (field="city"), not county.
+- If the user asks about "number of surgeries" / "surgeries per practice", use metric="surgery_count".
 - Use limit <= 200 unless asked for more.
+- If the user asks for "most"/"top"/"highest" within a group (e.g. "Which county has the most practices?"), set group_by=["county"], agg="count", metric="practice_count", order_by={"by":"value","dir":"desc"}, and limit=1.
+- If the user asks "list counties" or "what counties do we have", set group_by=["county"], agg="count", metric="practice_count", order_by={"by":"county","dir":"asc"}, and limit=1000.
+- If the user asks for "practice value" / "value of a practice" / "valuation" / "grand total", use metric="grand_total" (GBP) unless they explicitly ask for goodwill/freehold/etc.
+- If the user asks for "average practice value" or "average value of a practice", use agg="avg" and metric="grand_total".
 - If asked for an average, use agg="avg" and metric accordingly.
 - If the user asks "how many practices" / "how many are there" / "count practices", set agg="count" and add the appropriate geography filters (county/city/postcode) if mentioned.
 - If the user asks a question you cannot represent with the schema, still return JSON but set agg="count", metric="associate_cost_amount", and add no filters.`;
@@ -322,6 +185,7 @@ Rules:
     // Execute against Supabase via RPC to avoid returning raw practice rows.
     const out = await callRpc("ddv_query_intent", { intent });
     const value = out?.value ?? null;
+    const rows = Array.isArray(out?.rows) ? out.rows : null;
     const n = out?.n ?? null;
     const nullExcluded = out?.null_excluded ?? null;
 
@@ -345,12 +209,26 @@ Rules:
       if (m === "associate_cost_pct") return "associate cost (%)";
       if (m === "cert_associates_gbp") return "associate wages (certified accounts)";
       if (m === "cert_associates_percent") return "associate wages (% of income)";
+      if (m === "grand_total") return "practice value";
+      if (m === "goodwill") return "goodwill value";
+      if (m === "efandf") return "equipment/fittings value";
+      if (m === "total") return "total value";
+      if (m === "freehold") return "freehold value";
       return String(m || "value");
     }
 
     // Deterministic, answer-first response (no follow-up questions).
     let answer;
-    if (value === null) {
+    if (rows && rows.length) {
+      const preview = rows.slice(0, 15);
+      const lines = preview.map((r, i) => {
+        const g = r?.group && typeof r.group === "object" ? r.group : {};
+        const parts = Object.entries(g).map(([k, v]) => `${k}=${v}`);
+        const gtxt = parts.length ? parts.join(", ") : "group";
+        return `${i + 1}. ${gtxt}: ${fmtNumber(r?.value)}`;
+      });
+      answer = `Top results:\n${lines.join("\n")}`;
+    } else if (value === null) {
       answer = "No results found for that question.";
     } else if (intent?.agg === "count") {
       if (geoLabel && geoValue) {
@@ -362,6 +240,9 @@ Rules:
     } else {
       const loc = geoLabel && geoValue ? (geoLabel === "postcode" ? ` for postcode ${geoValue}` : ` in ${geoValue}`) : "";
       answer = `The ${intent?.agg || "avg"} ${metricLabel(intent?.metric)}${loc} is ${fmtNumber(value)}.`;
+      if (intent?.metric === "surgery_count" && Number(value) > 100) {
+        answer += " (This looks unusually high for surgery count—check the interpreted intent/filters.)";
+      }
     }
 
     const follow_ups = [];
@@ -377,7 +258,7 @@ Rules:
 
     const latency_ms = Date.now() - t0;
 
-    return res.status(200).json({ answer, value, n, null_excluded: nullExcluded, intent, follow_ups, latency_ms });
+    return res.status(200).json({ answer, value, rows, n, null_excluded: nullExcluded, intent, follow_ups, latency_ms });
   } catch (e) {
     const status = Number(e?.statusCode || 500);
     return res.status(status).json({ detail: String(e?.message || e) });

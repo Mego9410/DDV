@@ -11,6 +11,10 @@ backend/scripts/__pycache__/
 data/
 exports/
 
+# generated outputs
+out/
+backend/out/
+
 # derived/supplied practice data (keep in Supabase only)
 field_map.json
 smoke_calc_extract.json
