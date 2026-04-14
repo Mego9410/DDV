@@ -240,6 +240,30 @@ body{
     margin-top 520ms cubic-bezier(.2,.95,.2,1);
 }
 
+.chat.is-expanded{
+  /* Bottom-pinned overlay: can rise over the hero/title */
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  margin-top: 0;
+  /* Keep a bit of breathing room from the viewport edges */
+  width: min(820px, calc(100vw - 36px));
+  height: min(78vh, 720px);
+  z-index: 6;
+}
+
+.chat.is-expanding{
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  margin-top: 0;
+  width: min(820px, calc(100vw - 36px));
+  height: min(78vh, 720px);
+  z-index: 6;
+}
+
 .chat.is-collapsed{
   width: min(720px, 100%);
   margin-top: 18px;
@@ -250,13 +274,13 @@ body{
 
 .chat.is-expanding{
   opacity: 1;
-  transform: translateY(0) scale(1);
+  transform: translateX(-50%);
   pointer-events:auto;
 }
 
 .chat.is-expanded{
   opacity: 1;
-  transform: translateY(0) scale(1);
+  transform: translateX(-50%);
   pointer-events:auto;
 }
 
