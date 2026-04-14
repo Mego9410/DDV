@@ -50,6 +50,27 @@ function isAverageUdaRateQuestion(message) {
   return m.includes("average") || m.includes("avg") || m.includes("mean");
 }
 
+function isPracticeValueQuestion(message) {
+  const m = String(message || "").toLowerCase();
+  // common phrasings seen in DDV usage
+  if (m.includes("grand total")) return true;
+  if (m.includes("practice value")) return true;
+  if (m.includes("total value")) return true;
+  if (m.includes("valuation")) return true;
+  return false;
+}
+
+function requestedAgg(message) {
+  const m = String(message || "").toLowerCase();
+  if (m.includes("average") || m.includes("avg") || m.includes("mean")) return "avg";
+  if (m.includes("median")) return "median";
+  if (m.includes("minimum") || m.includes("min")) return "min";
+  if (m.includes("maximum") || m.includes("max")) return "max";
+  if (m.includes("count") || m.includes("how many")) return "count";
+  if (m.includes("sum") || m.includes("total")) return "sum";
+  return null;
+}
+
 function supabaseHeaders() {
   if (!SUPABASE_URL) {
     const err = new Error("Missing server env: SUPABASE_URL");
@@ -124,6 +145,47 @@ async function fetchAvgUdaRateGbp() {
   return { avg: n ? sum / n : null, count: n };
 }
 
+async function fetchNumericValues(field, extraParams) {
+  const url = SUPABASE_URL.replace(/\/$/, "");
+  const endpoint = `${url}/rest/v1/${SUPABASE_PRACTICES_TABLE}`;
+  const params = new URLSearchParams({
+    select: field,
+    [field]: "not.is.null",
+    limit: "10000",
+    ...(extraParams || {}),
+  });
+  const resp = await fetch(`${endpoint}?${params.toString()}`, { headers: supabaseHeaders() });
+  const text = await resp.text();
+  if (!resp.ok) {
+    const err = new Error(text || `Supabase query failed (${resp.status})`);
+    err.statusCode = 500;
+    throw err;
+  }
+  const rows = text ? JSON.parse(text) : [];
+  const values = [];
+  for (const r of Array.isArray(rows) ? rows : []) {
+    const v = Number(r?.[field]);
+    if (!Number.isFinite(v)) continue;
+    values.push(v);
+  }
+  return values;
+}
+
+function aggNumeric(values, agg) {
+  if (!Array.isArray(values) || !values.length) return null;
+  if (agg === "count") return values.length;
+  if (agg === "sum") return values.reduce((a, b) => a + b, 0);
+  if (agg === "min") return values.reduce((a, b) => (a < b ? a : b), values[0]);
+  if (agg === "max") return values.reduce((a, b) => (a > b ? a : b), values[0]);
+  if (agg === "avg") return values.reduce((a, b) => a + b, 0) / values.length;
+  if (agg === "median") {
+    const sorted = [...values].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+  }
+  return null;
+}
+
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ detail: "Method not allowed" });
   try {
@@ -166,6 +228,47 @@ module.exports = async function handler(req, res) {
       return res
         .status(200)
         .json({ answer, value: avg, intent: { kind: "avg", field: "uda_rate_gbp", count }, latency_ms });
+    }
+
+    // Practice value / valuation metrics live in practices.* columns but are not yet supported by ddv_query_intent RPC.
+    // We handle the common cases here without returning raw rows.
+    if (isPracticeValueQuestion(message)) {
+      const agg = requestedAgg(message);
+      // If user doesn't specify aggregation, ask before computing.
+      if (!agg || agg === "count") {
+        const latency_ms = 0;
+        return res.status(200).json({
+          answer: "For practice value, do you want the average per practice, or the total (sum) across all practices?",
+          value: null,
+          intent: { kind: "clarify", topic: "practice_value_agg" },
+          needs_clarification: true,
+          suggestions: ["Average grand total per practice", "Sum of grand totals across all practices"],
+          latency_ms,
+        });
+      }
+
+      const t0 = Date.now();
+      const field = "grand_total";
+      const values = await fetchNumericValues(field);
+      const out = aggNumeric(values, agg);
+      const latency_ms = Date.now() - t0;
+      if (out === null) {
+        return res.status(200).json({
+          answer: "No results found for that question.",
+          value: null,
+          intent: { kind: agg, field },
+          latency_ms,
+        });
+      }
+      const rounded = Math.round(Number(out) * 100) / 100;
+      const label = agg === "sum" ? "Total (sum) practice value" : agg === "avg" ? "Average practice value" : `${agg} practice value`;
+      const answer = `${label} (grand_total) is £${rounded}.`;
+      return res.status(200).json({
+        answer,
+        value: Number(out),
+        intent: { kind: agg, field, count: values.length },
+        latency_ms,
+      });
     }
 
     const apiKey = process.env.OPENAI_API_KEY || (await fetchSecret("openai_api_key"));
