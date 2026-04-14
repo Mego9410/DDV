@@ -8,8 +8,8 @@ function extractJsonObject(text) {
   if (!text) return "";
   let t = String(text).trim();
 
-  // Strip markdown fences like ```json ... ```
-  t = t.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+  // Strip markdown fences like ```json ... ``` (anywhere)
+  t = t.replace(/```(?:json)?/gi, "").replace(/```/g, "").trim();
 
   // If there's extra text, try to take the first {...} block.
   const start = t.indexOf("{");
@@ -83,7 +83,8 @@ Rules:
 
     let intent;
     try {
-      intent = JSON.parse(extractJsonObject(text));
+      const extracted = extractJsonObject(text);
+      intent = JSON.parse(extracted);
     } catch (e) {
       return res.status(400).json({ detail: `LLM returned non-JSON: ${String(e)}. Text=${text.slice(0, 300)}` });
     }
