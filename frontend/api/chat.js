@@ -38,6 +38,7 @@ module.exports = async function handler(req, res) {
 
     const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
     const message = String(body?.message ?? "").trim();
+    const messages = Array.isArray(body?.messages) ? body.messages : [];
     if (!message) return res.status(400).json({ detail: "Missing message" });
 
     const apiKey = process.env.OPENAI_API_KEY || (await fetchSecret("openai_api_key"));
@@ -76,6 +77,9 @@ Rules:
       model: "gpt-4o-mini",
       input: [
         { role: "system", content: system },
+        // Include recent conversation for better intent disambiguation.
+        // Keep it bounded to avoid token blow-ups.
+        ...messages.slice(-20),
         { role: "user", content: `Question: ${message}` },
       ],
     });

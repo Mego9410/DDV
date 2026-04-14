@@ -18,6 +18,7 @@ router = APIRouter()
 
 class ChatIn(BaseModel):
     message: str
+    messages: list[dict[str, Any]] | None = None
 
 
 class ChatOut(BaseModel):
@@ -129,7 +130,7 @@ def chat(body: ChatIn) -> ChatOut:
     t0 = time.time()
     engine = get_engine()
     try:
-        intent = generate_intent(question=body.message)
+        intent = generate_intent(question=body.message, messages=body.messages or [])
         intent_json = intent.model_dump()
         with Session(engine) as session:
             out = _execute_intent(session, intent)

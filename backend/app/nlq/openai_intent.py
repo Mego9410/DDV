@@ -44,7 +44,12 @@ def _cached_supabase_openai_key() -> str | None:
     return value.strip()
 
 
-def generate_intent(*, question: str, allow_group_by: bool = False) -> QueryIntent:
+def generate_intent(
+    *,
+    question: str,
+    messages: list[dict[str, Any]] | None = None,
+    allow_group_by: bool = False,
+) -> QueryIntent:
     """
     Use an LLM to translate natural language -> constrained QueryIntent JSON.
     Guardrails:
@@ -86,10 +91,21 @@ Rules:
     user = f"Question: {question}"
 
     model = "gpt-4o-mini"
+    # Provide bounded conversation context if available.
+    history = messages or []
+    # Only keep roles/content; ignore other fields.
+    safe_history: list[dict[str, str]] = []
+    for m in history[-20:]:
+        role = m.get("role")
+        content = m.get("content")
+        if role in ("user", "assistant") and isinstance(content, str) and content.strip():
+            safe_history.append({"role": role, "content": content.strip()})
+
     resp = client.responses.create(
         model=model,
         input=[
             {"role": "system", "content": system},
+            *safe_history,
             {"role": "user", "content": user},
         ],
     )

@@ -25,6 +25,33 @@ const passwordForm = el("passwordForm");
 const passwordInput = el("passwordInput");
 const passwordError = el("passwordError");
 
+const CHAT_THREAD_KEY = "DDV_CHAT_THREAD_V1";
+
+function loadThread() {
+  try {
+    const raw = localStorage.getItem(CHAT_THREAD_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (_) {
+    return [];
+  }
+}
+
+function saveThread(thread) {
+  try {
+    localStorage.setItem(CHAT_THREAD_KEY, JSON.stringify(thread || []));
+  } catch (_) {}
+}
+
+function clearThread() {
+  try {
+    localStorage.removeItem(CHAT_THREAD_KEY);
+  } catch (_) {}
+}
+
+// In-memory thread for this session (persisted to localStorage)
+let thread = loadThread();
+
 function getToken() {
   return localStorage.getItem(TOKEN_KEY);
 }
@@ -110,7 +137,7 @@ async function sendMessage(message) {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ message }),
+    body: JSON.stringify({ message, messages: thread }),
   });
   if (!resp.ok) {
     const t = await resp.text();
@@ -162,6 +189,8 @@ passwordForm.addEventListener("submit", async (e) => {
 
 btnLogout.addEventListener("click", () => {
   clearToken();
+  clearThread();
+  thread = [];
   setLoggedInUI(false);
   ensureAuthed();
 });
@@ -172,6 +201,14 @@ async function handleFirstQuestion(q, { _retriedAfterAuth } = {}) {
   expandChatFromHero();
   addBubble("user", q);
   addBubble("ai", "Thinking…");
+
+  // Update local thread before the request so the server sees the latest user turn.
+  thread = Array.isArray(thread) ? thread : [];
+  thread.push({ role: "user", content: q });
+  // Keep the thread from growing unbounded in localStorage.
+  if (thread.length > 40) thread = thread.slice(thread.length - 40);
+  saveThread(thread);
+
   try {
     const out = await sendMessage(q);
     // Replace last AI bubble
@@ -190,6 +227,12 @@ async function handleFirstQuestion(q, { _retriedAfterAuth } = {}) {
       // Keep the conversation going: focus input so user can answer immediately.
       setTimeout(() => chatInput?.focus(), 50);
     }
+
+    // Append assistant turn to thread after successful response
+    thread = Array.isArray(thread) ? thread : [];
+    thread.push({ role: "assistant", content: out.answer });
+    if (thread.length > 40) thread = thread.slice(thread.length - 40);
+    saveThread(thread);
   } catch (err) {
     // Expired tokens are expected; prompt for password and retry once.
     if (err?.authExpired && !_retriedAfterAuth) {
@@ -212,6 +255,13 @@ async function handleFirstQuestion(q, { _retriedAfterAuth } = {}) {
     m.className = "meta";
     m.textContent = String(err?.message || err);
     chatScroll.lastChild.appendChild(m);
+
+    // Roll back the last user turn if the request failed.
+    thread = Array.isArray(thread) ? thread : [];
+    if (thread.length && thread[thread.length - 1]?.role === "user" && thread[thread.length - 1]?.content === q) {
+      thread.pop();
+      saveThread(thread);
+    }
   }
 }
 
