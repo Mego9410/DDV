@@ -4,6 +4,22 @@ const { verifyAccessToken } = require("./_lib/token");
 
 const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET || "";
 
+function extractJsonObject(text) {
+  if (!text) return "";
+  let t = String(text).trim();
+
+  // Strip markdown fences like ```json ... ```
+  t = t.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+
+  // If there's extra text, try to take the first {...} block.
+  const start = t.indexOf("{");
+  const end = t.lastIndexOf("}");
+  if (start !== -1 && end !== -1 && end > start) {
+    t = t.slice(start, end + 1);
+  }
+  return t.trim();
+}
+
 function getBearerToken(req) {
   const h = req.headers?.authorization || req.headers?.Authorization || "";
   const s = Array.isArray(h) ? h[0] : String(h);
@@ -67,7 +83,7 @@ Rules:
 
     let intent;
     try {
-      intent = JSON.parse(text);
+      intent = JSON.parse(extractJsonObject(text));
     } catch (e) {
       return res.status(400).json({ detail: `LLM returned non-JSON: ${String(e)}. Text=${text.slice(0, 300)}` });
     }
