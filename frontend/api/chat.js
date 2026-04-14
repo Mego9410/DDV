@@ -92,7 +92,30 @@ Rules:
     // Execute against Supabase via RPC to avoid returning raw practice rows.
     const out = await callRpc("ddv_query_intent", { intent });
     const value = out?.value ?? null;
-    const answer = value === null ? "No results found for that question." : `Result: ${value}`;
+
+    // Natural language response (LLM) from question + computed value.
+    // If the LLM fails, fall back to a simple deterministic answer.
+    let answer = value === null ? "No results found for that question." : `Result: ${value}`;
+    try {
+      const resp2 = await client.responses.create({
+        model: "gpt-4o-mini",
+        input: [
+          {
+            role: "system",
+            content:
+              "You are a concise data assistant. Write a single-sentence natural language answer for the user. " +
+              "Do not mention SQL, JSON, models, or internal implementation. If value is null, say no results.",
+          },
+          {
+            role: "user",
+            content: JSON.stringify({ question: message, intent, value }),
+          },
+        ],
+      });
+      const nl = String(resp2.output_text || "").trim();
+      if (nl) answer = nl;
+    } catch (_) {}
+
     const latency_ms = Date.now() - t0;
 
     return res.status(200).json({ answer, value, intent, latency_ms });
