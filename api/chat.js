@@ -65,7 +65,7 @@ async function fetchDistinctCounties() {
   const endpoint = `${url}/rest/v1/${SUPABASE_PRACTICES_TABLE}`;
   const params = new URLSearchParams({
     select: "county",
-    "county": "is.not.null",
+    county: "not.is.null",
     order: "county.asc",
     limit: "10000",
   });
