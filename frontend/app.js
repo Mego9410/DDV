@@ -141,6 +141,21 @@ function showChatExpanded() {
   chat.classList.add("is-expanded");
 }
 
+function formatVerifyError(message, status) {
+  if (message.includes("Failed to fetch") || message.includes("NetworkError")) {
+    return `Can't reach API at ${API_BASE || "(same origin)"}. Check the deployment and retry.`;
+  }
+  try {
+    const parsed = JSON.parse(message);
+    if (parsed?.detail) return String(parsed.detail);
+  } catch {
+    // not JSON
+  }
+  if (status && status >= 500) return `Server error (${status}). Check Vercel env vars and redeploy.`;
+  if (status === 401) return "Invalid password. Try again.";
+  return message || "Sign-in failed. Try again.";
+}
+
 async function verifyPassword(password) {
   const resp = await fetch(`${API_BASE}/api/access/verify`, {
     method: "POST",
@@ -149,7 +164,9 @@ async function verifyPassword(password) {
   });
   if (!resp.ok) {
     const t = await resp.text();
-    throw new Error(t || `Password verify failed (${resp.status})`);
+    const err = new Error(t || `Password verify failed (${resp.status})`);
+    err.statusCode = resp.status;
+    throw err;
   }
   return await resp.json();
 }
@@ -205,9 +222,7 @@ passwordForm.addEventListener("submit", async (e) => {
   } catch (err) {
     passwordError.hidden = false;
     const msg = String(err?.message || err || "");
-    passwordError.textContent = msg.includes("Failed to fetch") || msg.includes("NetworkError")
-      ? `Can't reach API at ${API_BASE}. Start the backend and retry.`
-      : "Invalid password. Try again.";
+    passwordError.textContent = formatVerifyError(msg, err?.statusCode);
     passwordInput.select();
   }
 });

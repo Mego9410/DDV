@@ -13,6 +13,36 @@ from app.utils.access_token import mint_access_token
 
 router = APIRouter()
 
+# bcrypt hash for plaintext "password" (matches supabase migration)
+_PASSWORD_BCRYPT = "$2a$10$Z8uxdQ2GCBD7fn80Mc3OCuWiiWkOPFADCSgho4UFN5xSb60p.r8b6"
+
+
+def _normalize_plain(value: str | None) -> str | None:
+    if value is None:
+        return None
+    s = value.strip()
+    if not s:
+        return None
+    if (s.startswith('"') and s.endswith('"')) or (s.startswith("'") and s.endswith("'")):
+        s = s[1:-1].strip()
+    return s or None
+
+
+def _plain_candidates(settings) -> list[str]:
+    out: list[str] = []
+    env_plain = _normalize_plain(os.getenv("SHARED_PASSWORD_PLAIN"))
+    if env_plain:
+        out.append(env_plain)
+    out.append(settings.shared_password_plain)
+    # de-dupe while preserving order
+    seen: set[str] = set()
+    unique: list[str] = []
+    for p in out:
+        if p not in seen:
+            seen.add(p)
+            unique.append(p)
+    return unique
+
 
 class VerifyPasswordIn(BaseModel):
     password: str
@@ -53,22 +83,36 @@ async def _fetch_shared_password_hash() -> str:
         return str(data[0]["value"])
 
 
+async def _password_is_valid(password: str, settings) -> bool:
+    trimmed = password.strip()
+    if not trimmed:
+        return False
+
+    if any(trimmed == candidate for candidate in _plain_candidates(settings)):
+        return True
+
+    hashes: list[str] = [_PASSWORD_BCRYPT]
+    if settings.supabase_url and settings.supabase_service_role_key:
+        try:
+            stored = await _fetch_shared_password_hash()
+            if stored:
+                hashes.append(stored)
+        except HTTPException:
+            pass
+
+    for h in hashes:
+        try:
+            if bcrypt.verify(trimmed, h):
+                return True
+        except Exception:
+            continue
+    return False
+
+
 @router.post("/verify", response_model=VerifyPasswordOut)
 async def verify_password(body: VerifyPasswordIn) -> VerifyPasswordOut:
     settings = get_settings()
-    explicit_plain = os.getenv("SHARED_PASSWORD_PLAIN")
-    if explicit_plain is not None and explicit_plain.strip():
-        ok = body.password == explicit_plain.strip()
-    else:
-        stored_hash = await _fetch_shared_password_hash()
-        if not stored_hash:
-            ok = body.password == settings.shared_password_plain
-        else:
-            ok = False
-            try:
-                ok = bcrypt.verify(body.password, stored_hash)
-            except Exception:
-                ok = False
+    ok = await _password_is_valid(body.password, settings)
 
     if not ok:
         raise HTTPException(status_code=401, detail="Invalid password")
