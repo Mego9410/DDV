@@ -19,6 +19,7 @@ const composerCard = el("composerCard");
 const chatForm = el("chatForm");
 const chatInput = el("chatInput");
 const btnLogout = el("btnLogout");
+const heroExamples = el("heroExamples");
 
 const passwordModal = el("passwordModal");
 const passwordForm = el("passwordForm");
@@ -27,9 +28,13 @@ const passwordError = el("passwordError");
 
 const CHAT_THREAD_KEY = "DDV_CHAT_THREAD_V1";
 
+// Conversation context is kept for the current browser session only.
+// sessionStorage is cleared when the tab/window is closed, so follow-up
+// context survives navigation/reloads within a session but does not persist
+// after the window is closed (by design).
 function loadThread() {
   try {
-    const raw = localStorage.getItem(CHAT_THREAD_KEY);
+    const raw = sessionStorage.getItem(CHAT_THREAD_KEY);
     const parsed = raw ? JSON.parse(raw) : [];
     return Array.isArray(parsed) ? parsed : [];
   } catch (_) {
@@ -39,17 +44,17 @@ function loadThread() {
 
 function saveThread(thread) {
   try {
-    localStorage.setItem(CHAT_THREAD_KEY, JSON.stringify(thread || []));
+    sessionStorage.setItem(CHAT_THREAD_KEY, JSON.stringify(thread || []));
   } catch (_) {}
 }
 
 function clearThread() {
   try {
-    localStorage.removeItem(CHAT_THREAD_KEY);
+    sessionStorage.removeItem(CHAT_THREAD_KEY);
   } catch (_) {}
 }
 
-// In-memory thread for this session (persisted to localStorage)
+// In-memory thread for this session (persisted to sessionStorage)
 let thread = loadThread();
 
 function getToken() {
@@ -114,6 +119,26 @@ function addBubble(kind, text, meta) {
   }
   chatScroll.appendChild(wrap);
   chatScroll.scrollTop = chatScroll.scrollHeight;
+}
+
+// Re-render the saved conversation (used when restoring a session).
+function renderThread() {
+  if (!chatScroll) return;
+  chatScroll.innerHTML = "";
+  for (const m of Array.isArray(thread) ? thread : []) {
+    if (!m || typeof m.content !== "string") continue;
+    addBubble(m.role === "user" ? "user" : "ai", m.content);
+  }
+}
+
+// Show the chat expanded immediately (no entrance animation) for restored sessions.
+function showChatExpanded() {
+  if (composerCard) composerCard.hidden = true;
+  hero.classList.add("is-collapsing");
+  hero.hidden = true;
+  chat.hidden = false;
+  chat.classList.remove("is-collapsed", "is-expanding");
+  chat.classList.add("is-expanded");
 }
 
 async function verifyPassword(password) {
@@ -280,9 +305,34 @@ chatForm.addEventListener("submit", async (e) => {
   await handleFirstQuestion(q);
 });
 
+// Example prompt chips: clicking one runs it like a typed question.
+if (heroExamples) {
+  heroExamples.addEventListener("click", async (e) => {
+    const chip = e.target.closest(".chip");
+    if (!chip) return;
+    const q = (chip.textContent || "").trim();
+    if (!q) return;
+    await ensureAuthed();
+    if (!getToken()) return;
+    setLoggedInUI(true);
+    await handleFirstQuestion(q);
+  });
+}
+
 // boot
 (async function init() {
-  setLoggedInUI(Boolean(getToken()));
-  await ensureAuthed();
+  if (getToken()) {
+    setLoggedInUI(true);
+    // Restore an in-progress conversation for this session (survives reload,
+    // cleared when the window/tab is closed).
+    if (Array.isArray(thread) && thread.length) {
+      showChatExpanded();
+      renderThread();
+      setTimeout(() => chatInput?.focus(), 50);
+    }
+  } else {
+    setLoggedInUI(false);
+    await ensureAuthed();
+  }
 })();
 

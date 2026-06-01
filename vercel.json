@@ -1,4 +1,9 @@
 {
+  "functions": {
+    "api/chat.js": {
+      "includeFiles": "api/context/**"
+    }
+  },
   "rewrites": [
     {
       "source": "/api/(.*)",
