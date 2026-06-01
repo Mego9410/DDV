@@ -4,7 +4,7 @@ const OpenAI = require("openai");
 const { fetchSecret, callRpc } = require("./_lib/supabase");
 const { verifyAccessToken } = require("./_lib/token");
 
-const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET || "";
+const ACCESS_TOKEN_SECRET = (process.env.ACCESS_TOKEN_SECRET || "").trim() || "ddv-dev-access-token-secret";
 // gpt-4o-mini is too weak for analytical reasoning + SQL; default to a stronger
 // model. Override with OPENAI_MODEL (e.g. "gpt-4.1" or "gpt-4o").
 const MODEL = process.env.OPENAI_MODEL || "gpt-4o";

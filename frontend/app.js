@@ -151,7 +151,12 @@ function formatVerifyError(message, status) {
   } catch {
     // not JSON
   }
-  if (status && status >= 500) return `Server error (${status}). Check Vercel env vars and redeploy.`;
+  if (status && status >= 500) {
+    const snippet = message.replace(/\s+/g, " ").trim().slice(0, 160);
+    return snippet
+      ? `Server error (${status}): ${snippet}`
+      : `Server error (${status}). Check Vercel env vars and redeploy.`;
+  }
   if (status === 401) return "Invalid password. Try again.";
   return message || "Sign-in failed. Try again.";
 }

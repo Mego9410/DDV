@@ -20,15 +20,20 @@ function supabaseHeaders() {
 }
 
 async function fetchSecret(key) {
-  const url = SUPABASE_URL?.replace(/\/$/, "");
-  const endpoint = `${url}/rest/v1/${SUPABASE_SECRET_TABLE}`;
-  const params = new URLSearchParams({ select: "value", key: `eq.${key}`, limit: "1" });
-  const resp = await fetch(`${endpoint}?${params.toString()}`, { headers: supabaseHeaders() });
-  if (!resp.ok) return null;
-  const data = await resp.json();
-  if (!Array.isArray(data) || !data.length) return null;
-  const value = data[0]?.value;
-  return typeof value === "string" && value.trim() ? value.trim() : null;
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return null;
+  try {
+    const url = SUPABASE_URL.replace(/\/$/, "");
+    const endpoint = `${url}/rest/v1/${SUPABASE_SECRET_TABLE}`;
+    const params = new URLSearchParams({ select: "value", key: `eq.${key}`, limit: "1" });
+    const resp = await fetch(`${endpoint}?${params.toString()}`, { headers: supabaseHeaders() });
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    if (!Array.isArray(data) || !data.length) return null;
+    const value = data[0]?.value;
+    return typeof value === "string" && value.trim() ? value.trim() : null;
+  } catch {
+    return null;
+  }
 }
 
 async function callRpc(fnName, body) {

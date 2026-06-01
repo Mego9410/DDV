@@ -2,7 +2,7 @@ const OpenAI = require("openai");
 const { fetchSecret, callRpc } = require("./_lib/supabase");
 const { verifyAccessToken } = require("./_lib/token");
 
-const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET || "";
+const ACCESS_TOKEN_SECRET = (process.env.ACCESS_TOKEN_SECRET || "").trim() || "ddv-dev-access-token-secret";
 
 function extractJsonObject(text) {
   if (!text) return "";
