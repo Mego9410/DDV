@@ -129,8 +129,6 @@ async function runSql(query) {
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ detail: "Method not allowed" });
   try {
-    if (!ACCESS_TOKEN_SECRET) return res.status(500).json({ detail: "Missing server env: ACCESS_TOKEN_SECRET" });
-
     const token = getBearerToken(req);
     if (!token) return res.status(401).json({ detail: "Missing bearer token" });
     verifyAccessToken({ token, secret: ACCESS_TOKEN_SECRET });
