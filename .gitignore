@@ -26,6 +26,9 @@ backend/dev.db
 backend/*.sqlite
 backend/*.sqlite3
 
+# node
+node_modules/
+
 # frontend artifacts
 frontend/node_modules/
 frontend/dist/

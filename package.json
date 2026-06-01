@@ -1,0 +1,9 @@
+{
+  "name": "ddv",
+  "private": true,
+  "version": "0.0.0",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "openai": "^4.0.0"
+  }
+}
