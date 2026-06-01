@@ -4,8 +4,16 @@ const { mintAccessToken } = require("../_lib/token");
 
 const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET || "";
 const ACCESS_TOKEN_TTL_SECONDS = Number(process.env.ACCESS_TOKEN_TTL_SECONDS || 1800);
-const SHARED_PASSWORD_PLAIN = process.env.SHARED_PASSWORD_PLAIN || "password";
+const DEFAULT_SHARED_PASSWORD = "password";
 const SUPABASE_SHARED_PASSWORD_KEY = process.env.SUPABASE_SHARED_PASSWORD_KEY || "shared_password_hash";
+
+function verifySharedPassword(password) {
+  const explicitPlain = process.env.SHARED_PASSWORD_PLAIN;
+  if (explicitPlain != null && String(explicitPlain).trim() !== "") {
+    return password === String(explicitPlain).trim();
+  }
+  return null;
+}
 
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ detail: "Method not allowed" });
@@ -14,12 +22,14 @@ module.exports = async function handler(req, res) {
     const password = String(body?.password ?? "");
     if (!password.trim()) return res.status(400).json({ detail: "Missing password" });
 
-    const storedHash = await fetchSecret(SUPABASE_SHARED_PASSWORD_KEY);
-    let ok = false;
-    if (!storedHash) {
-      ok = password === SHARED_PASSWORD_PLAIN;
-    } else {
-      ok = bcrypt.compareSync(password, storedHash);
+    let ok = verifySharedPassword(password);
+    if (ok === null) {
+      const storedHash = await fetchSecret(SUPABASE_SHARED_PASSWORD_KEY);
+      if (!storedHash) {
+        ok = password === DEFAULT_SHARED_PASSWORD;
+      } else {
+        ok = bcrypt.compareSync(password, storedHash);
+      }
     }
 
     if (!ok) return res.status(401).json({ detail: "Invalid password" });

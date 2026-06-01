@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from typing import Any
 
 import httpx
@@ -55,17 +56,19 @@ async def _fetch_shared_password_hash() -> str:
 @router.post("/verify", response_model=VerifyPasswordOut)
 async def verify_password(body: VerifyPasswordIn) -> VerifyPasswordOut:
     settings = get_settings()
-    stored_hash = await _fetch_shared_password_hash()
-
-    # If Supabase isn't configured yet, use a plaintext shared password (dev fallback).
-    if not stored_hash:
-        ok = body.password == settings.shared_password_plain
+    explicit_plain = os.getenv("SHARED_PASSWORD_PLAIN")
+    if explicit_plain is not None and explicit_plain.strip():
+        ok = body.password == explicit_plain.strip()
     else:
-        ok = False
-        try:
-            ok = bcrypt.verify(body.password, stored_hash)
-        except Exception:
+        stored_hash = await _fetch_shared_password_hash()
+        if not stored_hash:
+            ok = body.password == settings.shared_password_plain
+        else:
             ok = False
+            try:
+                ok = bcrypt.verify(body.password, stored_hash)
+            except Exception:
+                ok = False
 
     if not ok:
         raise HTTPException(status_code=401, detail="Invalid password")
