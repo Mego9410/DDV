@@ -44,6 +44,9 @@ Common fields:
 - “private only” / “no NHS income” → practices where NHS income split is absent or zero:
   `(income_split_nhs_percent is null or = 0) and (income_split_nhs_value is null or = 0)`.
   Do not count only `income_split_nhs_percent = 0` — include NULL/missing NHS fields.
+- “NHS contract” / “has an NHS contract” / “on the NHS” → practices with NHS income:
+  `(income_split_nhs_percent > 0) or (income_split_nhs_value > 0)` (null-safe: require
+  not null and > 0). Do not use `nhs_contract_number is not null` alone.
 - “associate cost”:
   - if user says “% of income” / “percentage of income” / “associate wage %” → `cert_associates_percent`
   - else if user says “%” → `associate_cost_pct`

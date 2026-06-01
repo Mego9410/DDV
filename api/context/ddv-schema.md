@@ -90,11 +90,32 @@ push the analysis into SQL.
 "UDA" = Units of Dental Activity, the currency of NHS dental contracts.
 | Column | Type | Meaning |
 | --- | --- | --- |
-| `nhs_contract_number` | text | NHS contract id |
+| `nhs_contract_number` | text | NHS contract id (often missing even when the practice has NHS income) |
 | `uda_contract_value_gbp` | numeric | Annual NHS contract value (GBP) |
 | `uda_count` | numeric | Contracted number of UDAs per year |
 | `uda_rate_gbp` | numeric | £ paid per UDA (contract value / UDA count). Typically ~£20–£40. |
 | `uda_uplift_value_gbp` | numeric | Any uplift applied to the contract |
+
+**Has an NHS contract:** When the user asks how many practices "have an NHS contract",
+"are on the NHS", or similar, count practices with **NHS income in the income split** —
+not practices where `nhs_contract_number` is non-null. In this dataset the contract
+number is sparsely filled; **any practice with positive NHS income share or value has
+an NHS contract** even if the number is blank. Do **not** use `nhs_contract_number is
+not null` alone.
+
+Use this predicate (and state it in your answer):
+
+```sql
+(
+  (income_split_nhs_percent is not null and income_split_nhs_percent > 0)
+  or (income_split_nhs_value is not null and income_split_nhs_value > 0)
+)
+```
+
+If the income split is empty but UDA contract fields are populated
+(`uda_contract_value_gbp > 0` or `uda_count > 0`), treat that as NHS contract activity
+too and say so. When reporting the count, optionally note how many had a contract
+number recorded vs income/UDA evidence only.
 
 ### Income split — how practice income is divided by stream (percent + value)
 Streams: `fpi` (private fee-per-item), `nhs`, `denplan` (capitation plan), `rent`.
@@ -169,6 +190,8 @@ GBP figure and a percent-of-income figure.
   - "% of income" / "percentage" → `cert_associates_percent` (or `associate_cost_pct` for the modelled figure)
   - GBP amount → `cert_associates_gbp` (or `associate_cost_amount`)
 - "UDA rate" → `uda_rate_gbp`; "UDA value/contract" → `uda_contract_value_gbp`; "number of UDAs" → `uda_count`
+- "NHS contract" / "has an NHS contract" / "on the NHS" → **has NHS contract predicate** above
+  (positive NHS income split; do not rely on `nhs_contract_number` alone)
 - "NHS income share" → `income_split_nhs_percent`; "private income" → `income_split_fpi_percent`
 - "private only" / "private-only" / "no NHS" / "no NHS income" → practices matching the
   **private-only predicate** above (NULL or zero NHS percent **and** NULL or zero NHS value)
