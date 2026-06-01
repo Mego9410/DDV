@@ -25,7 +25,7 @@ class Settings(BaseSettings):
 
     # Dev fallback when Supabase isn't configured (plaintext).
     # Set this to something else before sharing broadly.
-    shared_password_plain: str = "pass"
+    shared_password_plain: str = "password"
 
     # Token issued after password verification
     access_token_secret: str = "dev-change-me"

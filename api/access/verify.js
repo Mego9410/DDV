@@ -4,7 +4,7 @@ const { mintAccessToken } = require("../_lib/token");
 
 const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET || "";
 const ACCESS_TOKEN_TTL_SECONDS = Number(process.env.ACCESS_TOKEN_TTL_SECONDS || 1800);
-const SHARED_PASSWORD_PLAIN = process.env.SHARED_PASSWORD_PLAIN || "pass";
+const SHARED_PASSWORD_PLAIN = process.env.SHARED_PASSWORD_PLAIN || "password";
 const SUPABASE_SHARED_PASSWORD_KEY = process.env.SUPABASE_SHARED_PASSWORD_KEY || "shared_password_hash";
 
 module.exports = async function handler(req, res) {
