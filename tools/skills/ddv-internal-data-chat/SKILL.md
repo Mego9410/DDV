@@ -41,6 +41,9 @@ Common fields:
 ### Metric resolution (map words → columns)
 - “surgeries” → `surgery_count`
 - “turnover” → `cert_income_gbp` (GBP)
+- “private only” / “no NHS income” → practices where NHS income split is absent or zero:
+  `(income_split_nhs_percent is null or = 0) and (income_split_nhs_value is null or = 0)`.
+  Do not count only `income_split_nhs_percent = 0` — include NULL/missing NHS fields.
 - “associate cost”:
   - if user says “% of income” / “percentage of income” / “associate wage %” → `cert_associates_percent`
   - else if user says “%” → `associate_cost_pct`

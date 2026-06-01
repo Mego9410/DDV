@@ -98,6 +98,30 @@ push the analysis into SQL.
 
 ### Income split — how practice income is divided by stream (percent + value)
 Streams: `fpi` (private fee-per-item), `nhs`, `denplan` (capitation plan), `rent`.
+
+**Private-only / no NHS income:** When the user asks for "private only", "private-only",
+"fully private", or practices with no NHS income, include every practice that has **no
+NHS income in the income split** — not only rows where NHS share is explicitly `0%`.
+Many practices have **NULL** NHS percent/value because no NHS stream was recorded at
+all; those count as private-only alongside practices with an explicit `0%` / `£0` NHS
+split. Do **not** use `income_split_nhs_percent = 0` alone.
+
+Use this predicate (and state it in your answer):
+
+```sql
+(
+  income_split_nhs_percent is null or income_split_nhs_percent = 0
+)
+and (
+  income_split_nhs_value is null or income_split_nhs_value = 0
+)
+```
+
+When reporting the count, optionally break out how many had explicit zero vs missing
+NHS fields. A practice may still have UDA/NHS contract columns populated while the
+income split shows no NHS — mention that if relevant; do not silently exclude NULL
+rows unless the user asks for "0% NHS share recorded" specifically.
+
 For each stream there are up to four columns:
 | Pattern | Meaning |
 | --- | --- |
@@ -146,6 +170,8 @@ GBP figure and a percent-of-income figure.
   - GBP amount → `cert_associates_gbp` (or `associate_cost_amount`)
 - "UDA rate" → `uda_rate_gbp`; "UDA value/contract" → `uda_contract_value_gbp`; "number of UDAs" → `uda_count`
 - "NHS income share" → `income_split_nhs_percent`; "private income" → `income_split_fpi_percent`
+- "private only" / "private-only" / "no NHS" / "no NHS income" → practices matching the
+  **private-only predicate** above (NULL or zero NHS percent **and** NULL or zero NHS value)
 If a term is ambiguous, pick the most defensible column and **state which column
 you used** in your answer.
 
