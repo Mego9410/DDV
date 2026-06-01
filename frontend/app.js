@@ -121,6 +121,21 @@ function addBubble(kind, text, meta) {
   chatScroll.scrollTop = chatScroll.scrollHeight;
 }
 
+// Animated "typing" bubble shown while the assistant is composing a reply.
+// Returns the bubble element so the caller can swap in the final answer.
+function addThinkingBubble() {
+  const wrap = document.createElement("div");
+  wrap.className = "bubble ai";
+  const dots = document.createElement("div");
+  dots.className = "typing";
+  dots.setAttribute("aria-label", "Assistant is thinking");
+  dots.innerHTML = "<span></span><span></span><span></span>";
+  wrap.appendChild(dots);
+  chatScroll.appendChild(wrap);
+  chatScroll.scrollTop = chatScroll.scrollHeight;
+  return wrap;
+}
+
 // Re-render the saved conversation (used when restoring a session).
 function renderThread() {
   if (!chatScroll) return;
@@ -245,7 +260,7 @@ async function handleFirstQuestion(q, { _retriedAfterAuth } = {}) {
   if (composerCard) composerCard.hidden = true;
   expandChatFromHero();
   addBubble("user", q);
-  addBubble("ai", "Thinking…");
+  addThinkingBubble();
 
   // Update local thread before the request so the server sees the latest user turn.
   thread = Array.isArray(thread) ? thread : [];
@@ -265,6 +280,7 @@ async function handleFirstQuestion(q, { _retriedAfterAuth } = {}) {
     m.className = "meta";
     m.textContent = meta;
     chatScroll.lastChild.appendChild(m);
+    chatScroll.scrollTop = chatScroll.scrollHeight;
 
     // Keep the conversation going: focus input so user can ask a follow-on immediately.
     setTimeout(() => chatInput?.focus(), 50);
