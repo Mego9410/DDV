@@ -31,6 +31,10 @@ class Practice(SQLModel, table=True):
     county: Optional[str] = Field(default=None, index=True)
     surgery_count: Optional[int] = Field(default=None, index=True)
 
+    # Geospatial (optional; derived from postcode centroid)
+    lat: Optional[float] = Field(default=None, index=False)
+    lng: Optional[float] = Field(default=None, index=False)
+
     # Core valuation metrics
     goodwill: Optional[float] = Field(default=None)
     efandf: Optional[float] = Field(default=None)

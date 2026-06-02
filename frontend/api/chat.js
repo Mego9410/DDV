@@ -56,7 +56,7 @@ Return ONLY valid JSON that matches this schema:
   "metric": "associate_cost_amount" | "associate_cost_pct" | "surgery_count" | "turnover_gbp" | "cert_associates_gbp" | "cert_associates_percent",
   "agg": "avg" | "median" | "min" | "max" | "count",
   "filters": [
-     {"field": "county" | "city" | "postcode" | "surgery_count" | "accounts_period_end" | "visited_on", "op": "=" | "in" | ">=" | "<=" | "between", "value": <any>}
+     {"field": "county" | "city" | "postcode" | "near" | "surgery_count" | "accounts_period_end" | "visited_on", "op": "=" | "in" | ">=" | "<=" | "between" | "within_miles", "value": <any>}
   ],
   "group_by": ["county" | "city" | "postcode" | "surgery_count" | "accounts_period_end" | "visited_on"],
   "limit": <int>
@@ -66,6 +66,8 @@ Rules:
 - Prefer "=" for single-value filters.
 - For surgery count, use an integer.
 - For county and city, use title case (e.g. "Kent", "Essex", "London"). These text filters are matched case-insensitively and whitespace-tolerant in SQL.
+- For radius questions, use a filter like: {"field":"near","op":"within_miles","value":{"place":"Brighton","radius_miles":30}}.
+- If the user says "<place> area" (or similar like "around <place>") without a radius, use radius_miles=25 by default.
 - Use limit <= 200 unless asked for more.
 - If asked for an average, use agg="avg" and metric accordingly.
 - If the user asks "how many practices" / "how many are there" / "count practices", set agg="count" and add the appropriate geography filters (county/city/postcode) if mentioned.

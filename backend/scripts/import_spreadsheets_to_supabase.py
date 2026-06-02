@@ -11,6 +11,8 @@ from pathlib import Path
 from typing import Any, Optional
 
 from sqlmodel import Session, select
+import httpx
+from sqlalchemy import text
 
 # Ensure `backend/` is on sys.path so `import app...` works even when invoked as:
 #   python scripts/<file>.py
@@ -44,6 +46,44 @@ def _iter_input_paths(input_path: Path, *, glob: str, recursive: bool) -> list[P
 def _to_float(v: Any) -> Optional[float]:
     d = to_decimal(v)
     return float(d) if d is not None else None
+
+
+def _norm_postcode(pc: str | None) -> str | None:
+    if not pc:
+        return None
+    s = "".join(str(pc).strip().upper().split())
+    return s or None
+
+
+def _lookup_postcode_latlng(session: Session, postcode: str) -> tuple[float | None, float | None]:
+    row = session.exec(
+        text("select lat, lng from public.postcode_geocode where postcode = :pc limit 1"),
+        params={"pc": postcode},
+    ).first()
+    if not row:
+        return None, None
+    return (float(row[0]) if row[0] is not None else None, float(row[1]) if row[1] is not None else None)
+
+
+def _fetch_postcodes_io(postcodes: list[str]) -> dict[str, tuple[float, float]]:
+    # Batch endpoint supports up to 100 postcodes.
+    if not postcodes:
+        return {}
+    r = httpx.post("https://api.postcodes.io/postcodes", json={"postcodes": postcodes}, timeout=20.0)
+    r.raise_for_status()
+    data = r.json() or {}
+    out: dict[str, tuple[float, float]] = {}
+    for item in data.get("result") or []:
+        q = item.get("query")
+        res = item.get("result")
+        if not q or not res:
+            continue
+        pc = _norm_postcode(q)
+        lat = res.get("latitude")
+        lng = res.get("longitude")
+        if pc and lat is not None and lng is not None:
+            out[pc] = (float(lat), float(lng))
+    return out
 
 
 def _extract_one(
@@ -167,6 +207,30 @@ def _ingest_one(session: Session, result: PracticeLatestResult, *, now: datetime
     existing.address_line2 = to_text(pr.get("address_line2"))
     existing.visited_on = to_date(mat.get("visited_on"))
     existing.surgery_count = mat.get("surgery_count")
+
+    # Best-effort geocode from postcode (centroid via postcodes.io), cached in public.postcode_geocode.
+    # Only attempt when postcode is present and lat/lng missing.
+    pc_norm = _norm_postcode(existing.postcode)
+    if pc_norm and (getattr(existing, "lat", None) is None or getattr(existing, "lng", None) is None):
+        lat, lng = _lookup_postcode_latlng(session, pc_norm)
+        if lat is None or lng is None:
+            fetched = _fetch_postcodes_io([pc_norm]).get(pc_norm)
+            if fetched:
+                lat, lng = fetched
+                session.exec(
+                    text(
+                        """
+                        insert into public.postcode_geocode(postcode, lat, lng)
+                        values (:pc, :lat, :lng)
+                        on conflict (postcode)
+                        do update set lat = excluded.lat, lng = excluded.lng, updated_at = now()
+                        """
+                    ),
+                    params={"pc": pc_norm, "lat": float(lat), "lng": float(lng)},
+                )
+        if lat is not None and lng is not None:
+            setattr(existing, "lat", float(lat))
+            setattr(existing, "lng", float(lng))
 
     # Core valuation metrics
     existing.goodwill = _to_float(mat.get("goodwill"))
