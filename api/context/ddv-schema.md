@@ -78,6 +78,30 @@ push the analysis into SQL.
 | `county` | text | County (free text, messy; ~150 distinct) |
 | `visited_on` | date | When the practice was visited |
 
+### Geospatial (optional; for distance / radius queries)
+These fields are derived from postcode centroids (best-effort; not every row has them):
+
+| Column | Type | Meaning |
+| --- | --- | --- |
+| `lat` / `lng` | float | Latitude / longitude (WGS84) derived from `postcode` |
+| `geog` | geography(Point,4326) | Generated point for distance queries (null if `lat`/`lng` missing) |
+
+There is also a cache table `public.postcode_geocode(postcode, lat, lng)` where `postcode` is normalised (uppercase, no spaces).
+
+To filter within a radius, use `st_dwithin` on `geog`:
+
+```sql
+-- 20 miles around a coordinate (lng/lat)
+select count(*) as n
+from public.practices
+where geog is not null
+  and st_dwithin(
+    geog,
+    st_setsrid(st_makepoint(-0.023, 51.540), 4326)::geography,
+    20 * 1609.344
+  );
+```
+
 ### Operations
 | Column | Type | Meaning |
 | --- | --- | --- |

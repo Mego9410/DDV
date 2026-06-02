@@ -1,5 +1,7 @@
 -- Add radius (near) filters to ddv_query_intent for NLQ chat:
 -- {"field":"near","op":"within_miles","value":{"place":"Brighton","radius_miles":30}}
+-- Also supports passing coordinates directly:
+-- {"field":"near","op":"within_miles","value":{"lat":51.540,"lng":0.023,"radius_miles":20}}
 --
 -- Requires postgis + practices.geog (see 20260602093500_add_geospatial_support.sql)
 -- and postcode_geocode cache (populated by backfill script).
@@ -151,24 +153,32 @@ begin
         near_place := nullif(btrim(val #>> '{place}'), '');
         near_radius_miles := nullif((val #>> '{radius_miles}')::double precision, 0);
         if near_place is null or near_radius_miles is null or near_radius_miles <= 0 then
-          where_sql := where_sql || ' and false';
-          continue;
+          -- If no place was provided, allow passing coordinates directly.
+          near_radius_miles := nullif((val #>> '{radius_miles}')::double precision, 0);
+          center_lat := nullif((val #>> '{lat}')::double precision, 0);
+          center_lng := nullif((val #>> '{lng}')::double precision, 0);
+          if near_radius_miles is null or near_radius_miles <= 0 or center_lat is null or center_lng is null then
+            where_sql := where_sql || ' and false';
+            continue;
+          end if;
         end if;
 
         near_radius_meters := near_radius_miles * 1609.344;
 
         -- Resolve center by postcode first (cached), otherwise by place name centroid
-        center_lat := null;
-        center_lng := null;
+        if center_lat is null or center_lng is null then
+          center_lat := null;
+          center_lng := null;
+        end if;
 
-        if near_place ~* '^[A-Z]{1,2}\\d[A-Z\\d]?\\s*\\d[A-Z]{2}$' then
+        if (center_lat is null or center_lng is null) and near_place is not null and near_place ~* '^[A-Z]{1,2}\\d[A-Z\\d]?\\s*\\d[A-Z]{2}$' then
           select g.lat, g.lng into center_lat, center_lng
           from public.postcode_geocode g
           where g.postcode = regexp_replace(upper(btrim(near_place)), '\\s+', '', 'g')
           limit 1;
         end if;
 
-        if center_lat is null or center_lng is null then
+        if (center_lat is null or center_lng is null) and near_place is not null then
           -- Centroid from practices that match the place in either city or county.
           select avg(p.lat), avg(p.lng) into center_lat, center_lng
           from public.practices p

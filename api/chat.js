@@ -127,6 +127,47 @@ async function runSql(query) {
   return { text, truncated, rowCount };
 }
 
+function parseRadiusQuestion(q) {
+  const s = String(q || "").trim();
+  // Examples:
+  // - "How many practices within 20 miles of Chingford?"
+  // - "count practices 30 miles around brighton"
+  const m = s.match(/\bwithin\s+(\d+(?:\.\d+)?)\s*miles?\s+of\s+(.+?)\s*\??$/i);
+  if (m) return { radiusMiles: Number(m[1]), place: String(m[2]).trim() };
+  const m2 = s.match(/\b(\d+(?:\.\d+)?)\s*miles?\s+(?:around|near)\s+(.+?)\s*\??$/i);
+  if (m2) return { radiusMiles: Number(m2[1]), place: String(m2[2]).trim() };
+  return null;
+}
+
+async function geocodePlaceToLatLng(place) {
+  const raw = String(place || "").trim();
+  if (!raw) return null;
+
+  // If it looks like a UK postcode, use postcodes.io postcode endpoint
+  const pc = raw.replace(/\s+/g, "").toUpperCase();
+  if (/^[A-Z]{1,2}\d[A-Z\d]?\d[A-Z]{2}$/.test(pc) || /^[A-Z]{1,2}\d[A-Z\d]?\d[A-Z]{2}$/.test(raw.toUpperCase().replace(/\s+/g, ""))) {
+    const resp = await fetch(`https://api.postcodes.io/postcodes/${encodeURIComponent(raw)}`);
+    if (!resp.ok) return null;
+    const data = await resp.json().catch(() => null);
+    const r = data?.result;
+    if (!r) return null;
+    const lat = Number(r.latitude);
+    const lng = Number(r.longitude);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+    return { lat, lng };
+  }
+
+  // Otherwise try postcodes.io places endpoint (best-effort)
+  const resp = await fetch(`https://api.postcodes.io/places?q=${encodeURIComponent(raw)}`);
+  if (!resp.ok) return null;
+  const data = await resp.json().catch(() => null);
+  const r = Array.isArray(data?.result) ? data.result[0] : null;
+  const lat = Number(r?.latitude);
+  const lng = Number(r?.longitude);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  return { lat, lng };
+}
+
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ detail: "Method not allowed" });
   try {
@@ -138,6 +179,44 @@ module.exports = async function handler(req, res) {
     const message = String(body?.message ?? "").trim();
     const history = sanitizeHistory(body?.messages);
     if (!message) return res.status(400).json({ detail: "Missing message" });
+
+    // Fast-path: deterministic radius questions (avoids the LLM saying "we can't do distance").
+    const radius = parseRadiusQuestion(message);
+    if (radius && Number.isFinite(radius.radiusMiles) && radius.radiusMiles > 0 && radius.place) {
+      const t0 = Date.now();
+      const center = await geocodePlaceToLatLng(radius.place);
+      if (!center) {
+        return res.status(200).json({
+          answer: `I couldn't geocode '${radius.place}' to coordinates, so I can't run a radius query. Try a nearby postcode instead.`,
+          sql: [],
+          model: "radius-fast-path",
+          latency_ms: Date.now() - t0,
+        });
+      }
+
+      const intent = {
+        metric: "practice_count",
+        agg: "count",
+        filters: [
+          {
+            field: "near",
+            op: "within_miles",
+            value: { lat: center.lat, lng: center.lng, radius_miles: radius.radiusMiles },
+          },
+        ],
+      };
+      const out = await callRpc("ddv_query_intent", { intent });
+      const value = out?.value ?? 0;
+      const n = out?.n ?? value;
+      return res.status(200).json({
+        answer: `There are ${value} practices within ${radius.radiusMiles} miles of ${radius.place}.`,
+        sql: [],
+        intent,
+        n,
+        model: "radius-fast-path",
+        latency_ms: Date.now() - t0,
+      });
+    }
 
     const apiKey = process.env.OPENAI_API_KEY || (await fetchSecret("openai_api_key"));
     if (!apiKey) {
