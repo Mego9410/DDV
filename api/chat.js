@@ -35,7 +35,7 @@ function loadDataDocs() {
   return [
     "# DDV data (fallback context)",
     "Query the Postgres table `public.practices` (one row per practice, ~720 rows, the full population).",
-    "Money columns are GBP; percent columns are 0-100. Geography (`city`, `county`) is messy free text - match with ILIKE.",
+    "Money columns are GBP; percent columns are 0-100. Geography (`city`, `county`) is messy free text - match case-insensitively and whitespace-tolerant (e.g. `lower(btrim(city)) = lower(btrim('Manchester'))` or `btrim(city) ILIKE '%manchester%'`).",
     "Use `grand_total` for practice value, `cert_income_gbp` for turnover, `cert_net_profit_gbp` for profit, `surgery_count` for surgeries.",
     "Always exclude NULLs from aggregates and report the sample size.",
   ].join("\n");
@@ -63,6 +63,7 @@ Hard rules:
 - Always exclude NULLs from numeric aggregates and report the sample size (n).
 - When the user's geography or wording is fuzzy, first run a quick exploratory
   query (DISTINCT / GROUP BY / ILIKE) to see the real values, then aggregate.
+  For place names, check both `city` and `county` (they are messy and often swapped).
 - If a question is ambiguous, make the most defensible assumption, proceed, and
   state the assumption. Do not interrogate the user with forms.
 - Use the conversation so far to resolve follow-up questions.

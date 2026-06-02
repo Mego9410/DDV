@@ -65,7 +65,7 @@ Return ONLY valid JSON that matches this schema:
 Rules:
 - Prefer "=" for single-value filters.
 - For surgery count, use an integer.
-- For county and city, use title case (e.g. "Kent", "Essex", "London").
+- For county and city, use title case (e.g. "Kent", "Essex", "London"). These text filters are matched case-insensitively and whitespace-tolerant in SQL.
 - Use limit <= 200 unless asked for more.
 - If asked for an average, use agg="avg" and metric accordingly.
 - If the user asks "how many practices" / "how many are there" / "count practices", set agg="count" and add the appropriate geography filters (county/city/postcode) if mentioned.

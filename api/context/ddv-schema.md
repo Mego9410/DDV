@@ -42,7 +42,13 @@ push the analysis into SQL.
   and ~500 distinct `city` values, including duplicates/synonyms and
   abbreviations (e.g. both `Herts` and `Hertfordshire`, `London` appears as both
   a city and a county). Always match geography **case-insensitively** with
-  `ILIKE` and consider synonyms. For "in London" prefer `city ILIKE 'london'`.
+  `ILIKE` and consider synonyms. Also be **whitespace-tolerant** (many values
+  have trailing spaces). Prefer `lower(btrim(city)) = lower(btrim('London'))`
+  for exact city matching, or `btrim(city) ILIKE '%london%'` when the user’s
+  wording is fuzzy.
+  Some places you might think of as a "city" (e.g. `Manchester`) may actually be
+  stored in `county` in this dataset, so for "in <place>" style questions it is
+  often best to check **both `city` and `county`**.
   When a user names a region, it is good practice to first run a quick
   `SELECT DISTINCT`/`GROUP BY` to see how the value is actually spelled, then
   aggregate.
