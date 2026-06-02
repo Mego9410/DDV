@@ -62,7 +62,19 @@ push the analysis into SQL.
   filters (e.g. `where income_split_nhs_percent between 0 and 100`), and mention
   when you excluded implausible values.
 - Treat `0` in a money column with suspicion — it often means "not provided"
-  rather than a true zero.
+  rather than a true zero. For **"cheapest" / "lowest" / "minimum" / "smallest"**
+  money questions, exclude both NULL **and** `0` (e.g.
+  `where grand_total is not null and grand_total > 0`) or you will return a
+  meaningless £0; say that you ignored zero/blank values.
+- **Dates are messy and the table is latest-only.** `accounts_period_end` and
+  `certified_accounts_period_end_prev` have had clearly-corrupt values (impossible
+  years) cleaned to NULL; remaining dates fall in ~2012–2026. There is **no
+  multi-year time series** here — only the current figures plus a single `_prev`
+  (prior-year) column. Do **not** infer trends across many years or quote a
+  growth rate beyond current-vs-`_prev`.
+- **If the user asks for something not in the schema** (e.g. headcount, number of
+  dentists, patient list size, CQC rating, satisfaction), say it isn't in this
+  dataset rather than guessing or substituting a different column.
 
 ## Column dictionary for `public.practices`
 
@@ -101,6 +113,17 @@ where geog is not null
     20 * 1609.344
   );
 ```
+
+For distance questions use the `geocode_place` tool to turn the place name (or a
+postcode) into `lat`/`lng` first, then run the query above. Two rules:
+
+- **Disclose excluded rows.** Only practices with a non-null `geog` can match a
+  radius. State how many were left out for missing coordinates, e.g. also report
+  `select count(*) from public.practices where geog is null`.
+- **Never fake a zero.** If `geocode_place` cannot locate the place, say you
+  couldn't find it and ask for a postcode — do **not** answer "0 practices".
+- For vague phrasing like "the X area" / "near X" with no stated distance, assume
+  a ~25-mile radius and say that you assumed it.
 
 ### Operations
 | Column | Type | Meaning |
