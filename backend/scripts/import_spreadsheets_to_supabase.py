@@ -165,6 +165,13 @@ def _ingest_one(session: Session, result: PracticeLatestResult, *, now: datetime
             "income_split_rent_value",
             "income_split_rent_applied_percent",
             "income_split_rent_applied_value",
+            "accountancy_bookkeeping_gbp",
+            "light_heat_gbp",
+            "phone_telecoms_gbp",
+            "it_software_gbp",
+            "professional_subs_gbp",
+            "bank_charges_gbp",
+            "therapist_gross_fees_gbp",
         ]
         for f in backfill_fields:
             incoming_val = mat.get(f) if f in mat else pr.get(f)
@@ -206,7 +213,13 @@ def _ingest_one(session: Session, result: PracticeLatestResult, *, now: datetime
     existing.address_line1 = to_text(pr.get("address_line1"))
     existing.address_line2 = to_text(pr.get("address_line2"))
     existing.visited_on = to_date(mat.get("visited_on"))
-    existing.surgery_count = mat.get("surgery_count")
+    _sc = mat.get("surgery_count")
+    try:
+        _sc = int(_sc) if _sc is not None else None
+    except (TypeError, ValueError):
+        _sc = None
+    # DB constraint: surgery_count must be NULL or within 1..50; clamp implausible extractions to NULL.
+    existing.surgery_count = _sc if (_sc is not None and 1 <= _sc <= 50) else None
 
     # Best-effort geocode from postcode (centroid via postcodes.io), cached in public.postcode_geocode.
     # Only attempt when postcode is present and lat/lng missing.
@@ -314,6 +327,15 @@ def _ingest_one(session: Session, result: PracticeLatestResult, *, now: datetime
     existing.cert_net_profit_gbp_prev = _to_float(mat.get("cert_net_profit_gbp_prev"))
     existing.cert_net_profit_percent_prev = _to_float(mat.get("cert_net_profit_percent_prev"))
 
+    # Additional P&L expense lines
+    existing.accountancy_bookkeeping_gbp = _to_float(mat.get("accountancy_bookkeeping_gbp"))
+    existing.light_heat_gbp = _to_float(mat.get("light_heat_gbp"))
+    existing.phone_telecoms_gbp = _to_float(mat.get("phone_telecoms_gbp"))
+    existing.it_software_gbp = _to_float(mat.get("it_software_gbp"))
+    existing.professional_subs_gbp = _to_float(mat.get("professional_subs_gbp"))
+    existing.bank_charges_gbp = _to_float(mat.get("bank_charges_gbp"))
+    existing.therapist_gross_fees_gbp = _to_float(mat.get("therapist_gross_fees_gbp"))
+
     existing.source_file = to_text(payload.get("source_file"))
     existing.raw_json = payload
     existing.updated_at = now
@@ -323,7 +345,8 @@ def _ingest_one(session: Session, result: PracticeLatestResult, *, now: datetime
 
 def main() -> None:
     ap = argparse.ArgumentParser(description="Parse .xlsx spreadsheets and upsert latest-only rows into Supabase/Postgres.")
-    ap.add_argument("--input-path", required=True, help="A spreadsheet file path or a directory containing spreadsheets")
+    ap.add_argument("--input-path", required=False, help="A spreadsheet file path or a directory containing spreadsheets")
+    ap.add_argument("--paths-json", default=None, help="A JSON array of explicit .xlsx file paths to ingest (overrides --input-path)")
     ap.add_argument("--glob", default="*.xlsx", help="Glob within input-dir (default: *.xlsx)")
     ap.add_argument("--recursive", action="store_true", help="Recurse into subdirectories")
     ap.add_argument("--canonical-mapping", default=None, help="Optional canonical mapping JSON path")
@@ -338,10 +361,21 @@ def main() -> None:
     settings = get_settings()
     low_conf = float(settings.low_confidence_threshold)
 
-    input_path = Path(args.input_path)
-    paths = _iter_input_paths(input_path, glob=args.glob, recursive=bool(args.recursive))
-    if not paths:
-        raise SystemExit(f"No files found in {input_path} matching {args.glob} (recursive={args.recursive})")
+    if args.paths_json:
+        raw = json.loads(Path(args.paths_json).read_text(encoding="utf-8"))
+        if not isinstance(raw, list) or not all(isinstance(x, str) for x in raw):
+            raise SystemExit("--paths-json must be a JSON array of file path strings")
+        paths = [Path(p) for p in raw if Path(p).is_file()]
+        input_path = Path(args.paths_json)
+        if not paths:
+            raise SystemExit(f"No existing files listed in {args.paths_json}")
+    else:
+        if not args.input_path:
+            raise SystemExit("Provide either --input-path or --paths-json")
+        input_path = Path(args.input_path)
+        paths = _iter_input_paths(input_path, glob=args.glob, recursive=bool(args.recursive))
+        if not paths:
+            raise SystemExit(f"No files found in {input_path} matching {args.glob} (recursive={args.recursive})")
 
     t_all = time.time()
     extracted: list[dict[str, Any]] = []

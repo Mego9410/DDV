@@ -10,9 +10,14 @@ DDV brokers and values UK dental practices. The database holds a normalised
 record per practice, built by ingesting each practice's spreadsheet (valuation
 workings + certified accounts + NHS/UDA contract details + location).
 
-- **One table holds everything you query: `public.practices`.**
+- **The primary table is `public.practices`.** Use it for almost every question.
 - It is **latest-only**: exactly **one row per practice** (`practice_key`). There
   is no time series of multiple snapshots per practice in this table.
+- **History lives in a second table, `public.practice_snapshots`** — one row per
+  practice **per dated snapshot sheet** (the workbook's Calc/Update tabs). Use it
+  **only** when the user explicitly asks about change/history over time (trends,
+  "how has X changed", "previous valuations", "year-on-year"). For all "current"
+  or population questions, use `public.practices`. See the dedicated section below.
 - There are roughly **720+ practices** (rows). This is the **entire population**,
   not a sample. When a user says "all the data" / "the dataset" / "across the
   board", they mean aggregating over this whole table.
@@ -219,6 +224,32 @@ GBP figure and a percent-of-income figure.
 | `cert_labs_gbp` / `cert_labs_percent` | yes | Laboratory costs |
 | `cert_net_profit_gbp` / `cert_net_profit_percent` | yes | **Net profit** (and net margin %) |
 
+### Other P&L expense lines (GBP) — additional cost categories
+These are individual overhead/cost lines pulled from the practice's **Reconstituted
+P&L actuals** (preferred) and, where the actuals don't list them, the **Forecast**
+projection (fallback). They are **sparsely populated** (the source sheets only list
+these lines for some practices) and there is **no `_prev` or percent variant** — a
+single latest GBP figure per practice. Always report `n` and exclude NULLs.
+
+| Column | Type | Meaning |
+| --- | --- | --- |
+| `accountancy_bookkeeping_gbp` | numeric | Accountancy **and** bookkeeping fees (combined — the source sheets usually merge them, e.g. "Accountancy/bookeeper") |
+| `light_heat_gbp` | numeric | Light & heat (utilities) |
+| `phone_telecoms_gbp` | numeric | Phone / telecoms (incl. mobile, telephone) |
+| `it_software_gbp` | numeric | IT **and** software (combined — sheets usually merge as "Software & IT" / "Computer costs") |
+| `professional_subs_gbp` | numeric | Professional subscriptions (e.g. Dental Protection, GDC); may include donations where the sheet bundles "subs & donations" |
+| `bank_charges_gbp` | numeric | Bank charges (most reliably populated of these) |
+| `therapist_gross_fees_gbp` | numeric | Therapist **gross fees** from the Management Information section (best-effort, low confidence — treat as approximate) |
+
+Notes:
+- `accountancy_bookkeeping_gbp` and `it_software_gbp` are deliberately **combined**
+  fields because the underlying spreadsheets almost always merge them; do not claim a
+  standalone "software" or "bookkeeping" figure.
+- `therapist_gross_fees_gbp` is the least reliable (extracted heuristically by summing
+  therapist columns in the Management Information block); flag it as approximate.
+- Per-field provenance (source = actuals vs forecast, matched label, period) is recorded
+  under `raw_json -> extraction -> evidence -> expense_lines`.
+
 ### Modelled associate cost (DDV's normalised model, separate from certified)
 | Column | Type | Meaning |
 | --- | --- | --- |
@@ -233,6 +264,45 @@ GBP figure and a percent-of-income figure.
 | `raw_json` | jsonb | Full raw extracted payload (rarely needed; the typed columns above are preferred) |
 | `created_at` / `updated_at` | timestamptz | Row timestamps |
 
+## Historical snapshots — `public.practice_snapshots`
+
+`public.practices` is latest-only. When a practice's workbook contains several
+dated "Update"/"Calc" tabs, each is also stored as a row in
+`public.practice_snapshots`, giving a **time series per practice**.
+
+- **One row per practice per snapshot sheet.** Many rows share a `practice_key`.
+- `practice_key` joins back to `public.practices` (the current headline row).
+- `as_of_date` is the snapshot's timeframe; `as_of_date_source` says how it was
+  derived (`sheet_name` is most reliable; `file_name` is least reliable — the date
+  was inferred from the filename when the sheet itself was undated, so treat those
+  dates as approximate).
+- The financial columns are **identical in name and meaning** to `public.practices`
+  (valuation, certified accounts, income split, UDA, expense lines, etc.), but each
+  reflects **that sheet's** figures at that point in time.
+- This is **best-effort history**: coverage varies, some snapshots are undated, and
+  an undated base `Calculation` tab may duplicate another snapshot's figures under an
+  approximate date. Always report `n` and prefer `as_of_date_source = 'sheet_name'`
+  when you need clean dating.
+
+**When to use which table:**
+- "What is the average value now / across the dataset" → `public.practices`.
+- "How has practice X's turnover/valuation changed over time", "show the history",
+  "previous figures", "trend" → `public.practice_snapshots`, filtered to that
+  practice and ordered by `as_of_date`.
+
+```sql
+-- Turnover history for one practice (most recent first)
+select as_of_date, as_of_date_source, sheet_name,
+       cert_income_gbp, cert_net_profit_gbp, grand_total
+from public.practice_snapshots
+where practice_key = '<practice_key>'
+order by as_of_date desc nulls last;
+```
+
+Do **not** aggregate `practice_snapshots` across all practices to answer "current"
+population questions — you would double-count practices that have many snapshots.
+For population aggregates use `public.practices`.
+
 ## Word → column mapping (resolve user phrasing)
 - "practice value" / "valuation" / "worth" / "grand total" → `grand_total`
 - "goodwill" → `goodwill`; "freehold" → `freehold`; "equipment/fittings/EF&F" → `efandf`
@@ -242,6 +312,13 @@ GBP figure and a percent-of-income figure.
 - "associate cost/pay/wages":
   - "% of income" / "percentage" → `cert_associates_percent` (or `associate_cost_pct` for the modelled figure)
   - GBP amount → `cert_associates_gbp` (or `associate_cost_amount`)
+- "accountancy" / "accountant fees" / "bookkeeping" / "bookkeeper" → `accountancy_bookkeeping_gbp` (combined)
+- "light & heat" / "heating" / "utilities" / "electricity & gas" → `light_heat_gbp`
+- "phone" / "telephone" / "telecoms" / "mobile" → `phone_telecoms_gbp`
+- "IT" / "software" / "computer costs" → `it_software_gbp` (combined)
+- "professional subs" / "subscriptions" / "Dental Protection" / "GDC fees" → `professional_subs_gbp`
+- "bank charges" / "bank fees" → `bank_charges_gbp`
+- "therapist costs" / "therapist fees" / "therapist gross fees" → `therapist_gross_fees_gbp` (approximate)
 - "UDA rate" → `uda_rate_gbp`; "UDA value/contract" → `uda_contract_value_gbp`; "number of UDAs" → `uda_count`
 - "NHS contract" / "has an NHS contract" / "on the NHS" → **has NHS contract predicate** above
   (positive NHS income split; do not rely on `nhs_contract_number` alone)

@@ -57,6 +57,40 @@ class CalcSheetSelector:
         candidates = sorted(candidates, key=lambda c: (c.as_of_date or date.min, c.score), reverse=True)
         return candidates[0]
 
+    def select_all(self, xlsx_path: Path) -> list[SelectedCalcSheet]:
+        """
+        Enumerate every calc/update/calculation sheet that looks like a practice
+        snapshot (passes the practice-header check), each with its detected date.
+
+        Unlike select(), this keeps ALL qualifying sheets so callers can build a
+        historical time series (one record per snapshot sheet). Sorted newest-first
+        (undated sheets, e.g. the base 'Calculation' tab, sort last).
+        """
+        xl = pd.ExcelFile(xlsx_path)
+        candidates: list[SelectedCalcSheet] = []
+        for sheet in xl.sheet_names:
+            if not self._is_calc_like_name(sheet):
+                continue
+            df = xl.parse(sheet_name=sheet, header=None, dtype=object).iloc[:60, :20]
+            lines = self._top_left_lines(df)
+            addr_score = self._looks_like_practice_header(lines)
+            if addr_score < 4.0:
+                continue
+            as_of, src = self._detect_date(sheet, lines)
+            recency_bonus = 0.0
+            if as_of:
+                recency_bonus = min(2.0, max(0.0, (as_of.year - 2018) * 0.07))
+            candidates.append(
+                SelectedCalcSheet(
+                    sheet_name=sheet,
+                    practice_block_lines=lines[:8],
+                    as_of_date=as_of,
+                    as_of_date_source=src,
+                    score=addr_score + recency_bonus,
+                )
+            )
+        return sorted(candidates, key=lambda c: (c.as_of_date or date.min, c.score), reverse=True)
+
     def _is_calc_like_name(self, sheet_name: str) -> bool:
         s = sheet_name.strip().lower()
         return (

@@ -102,6 +102,18 @@ create table if not exists public.practices (
   cert_net_profit_gbp_prev numeric null,
   cert_net_profit_percent_prev numeric null,
 
+  -- Additional P&L expense lines (Reconstituted P&L actuals, Forecast fallback).
+  -- accountancy_bookkeeping and it_software are intentionally combined because the
+  -- source sheets usually merge them (e.g. "Software & IT", "Accountancy/bookeeper").
+  accountancy_bookkeeping_gbp numeric null,
+  light_heat_gbp numeric null,
+  phone_telecoms_gbp numeric null,
+  it_software_gbp numeric null,
+  professional_subs_gbp numeric null,
+  bank_charges_gbp numeric null,
+  -- Therapist gross fees (best-effort, from Management Information section).
+  therapist_gross_fees_gbp numeric null,
+
   source_file text null,
   raw_json jsonb not null default '{}'::jsonb,
 
@@ -117,6 +129,93 @@ create index if not exists practices_city_idx on public.practices(city);
 create index if not exists practices_address_line1_idx on public.practices(address_line1);
 create index if not exists practices_nhs_contract_number_idx on public.practices(nhs_contract_number);
 create index if not exists practices_visited_on_idx on public.practices(visited_on);
+
+-- Practice snapshots (historical time series; many rows per practice_key).
+-- One row per snapshot sheet (Calc/Calculation/Update tabs). `practices` stays
+-- latest-only; this table holds the dated history. Financial columns mirror practices.
+create table if not exists public.practice_snapshots (
+  id uuid primary key default gen_random_uuid(),
+  snapshot_key text unique not null,         -- practice_key | as_of_date | sheet_name
+  practice_key text not null,
+
+  display_name text null,
+  practice_name text null,
+  postcode text null,
+  city text null,
+  county text null,
+
+  as_of_date date null,                      -- snapshot timeframe (sheet/visited/certified/file)
+  as_of_date_source text null,
+  sheet_name text null,
+
+  surgery_count integer null,
+
+  goodwill numeric null,
+  efandf numeric null,
+  total numeric null,
+  freehold numeric null,
+  grand_total numeric null,
+
+  nhs_contract_number text null,
+  uda_contract_value_gbp numeric null,
+  uda_count numeric null,
+  uda_rate_gbp numeric null,
+  uda_uplift_value_gbp numeric null,
+
+  income_split_fpi_percent numeric null,
+  income_split_fpi_value numeric null,
+  income_split_fpi_applied_percent numeric null,
+  income_split_fpi_applied_value numeric null,
+  income_split_nhs_percent numeric null,
+  income_split_nhs_value numeric null,
+  income_split_nhs_applied_percent numeric null,
+  income_split_nhs_applied_value numeric null,
+  income_split_denplan_percent numeric null,
+  income_split_denplan_value numeric null,
+  income_split_denplan_applied_percent numeric null,
+  income_split_denplan_applied_value numeric null,
+  income_split_rent_percent numeric null,
+  income_split_rent_value numeric null,
+  income_split_rent_applied_percent numeric null,
+  income_split_rent_applied_value numeric null,
+
+  associate_cost_amount numeric null,
+  associate_cost_pct numeric null,
+  accounts_period_end date null,
+  certified_accounts_period_end_prev date null,
+
+  cert_income_gbp numeric null, cert_income_percent numeric null, cert_income_gbp_prev numeric null, cert_income_percent_prev numeric null,
+  cert_other_inc_gbp numeric null, cert_other_inc_percent numeric null, cert_other_inc_gbp_prev numeric null, cert_other_inc_percent_prev numeric null,
+  cert_associates_gbp numeric null, cert_associates_percent numeric null, cert_associates_gbp_prev numeric null, cert_associates_percent_prev numeric null,
+  cert_wages_gbp numeric null, cert_wages_percent numeric null, cert_wages_gbp_prev numeric null, cert_wages_percent_prev numeric null,
+  cert_hygiene_gbp numeric null, cert_hygiene_percent numeric null, cert_hygiene_gbp_prev numeric null, cert_hygiene_percent_prev numeric null,
+  cert_materials_gbp numeric null, cert_materials_percent numeric null, cert_materials_gbp_prev numeric null, cert_materials_percent_prev numeric null,
+  cert_labs_gbp numeric null, cert_labs_percent numeric null, cert_labs_gbp_prev numeric null, cert_labs_percent_prev numeric null,
+  cert_net_profit_gbp numeric null, cert_net_profit_percent numeric null, cert_net_profit_gbp_prev numeric null, cert_net_profit_percent_prev numeric null,
+
+  accountancy_bookkeeping_gbp numeric null,
+  light_heat_gbp numeric null,
+  phone_telecoms_gbp numeric null,
+  it_software_gbp numeric null,
+  professional_subs_gbp numeric null,
+  bank_charges_gbp numeric null,
+  therapist_gross_fees_gbp numeric null,
+
+  source_file text null,
+  raw_json jsonb not null default '{}'::jsonb,
+
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists practice_snapshots_practice_key_idx on public.practice_snapshots(practice_key);
+create index if not exists practice_snapshots_practice_asof_idx on public.practice_snapshots(practice_key, as_of_date desc);
+create index if not exists practice_snapshots_as_of_idx on public.practice_snapshots(as_of_date);
+create index if not exists practice_snapshots_accounts_period_end_idx on public.practice_snapshots(accounts_period_end);
+
+-- RLS: deny-all to PostgREST roles (mirrors public.practices); backend connects
+-- with a privileged role that bypasses RLS.
+alter table public.practice_snapshots enable row level security;
 
 -- Extraction log (field-level confidence + evidence)
 create table if not exists public.extraction_log (

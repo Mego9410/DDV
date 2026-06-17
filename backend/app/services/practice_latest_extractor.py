@@ -10,9 +10,22 @@ from typing import Any, Optional
 
 from app.services.calc_metrics_extractor import CalcMetricsExtractor, MetricHit
 from app.services.calc_sheet_selector import CalcSheetSelector
+from app.services.expense_lines_extractor import ExpenseLinesExtractor
 from app.services.workbook_reader import WorkbookReader
 from app.utils.address_normalizer import normalize_uk_address
 from app.validators.normalizers import make_practice_key, to_text, to_date
+
+
+@dataclass(frozen=True)
+class PracticeSnapshotResult:
+    practice_key: str
+    snapshot_key: str
+    sheet_name: str
+    as_of_date: Optional[date]
+    as_of_date_source: Optional[str]
+    display_name: str
+    source_file: str
+    raw_json: dict[str, Any]
 
 
 @dataclass(frozen=True)
@@ -53,6 +66,7 @@ class PracticeLatestExtractor:
         self._selector = CalcSheetSelector()
         self._reader = WorkbookReader()
         self._metrics = CalcMetricsExtractor(canonical_mapping_path=canonical_mapping_path)
+        self._expenses = ExpenseLinesExtractor()
         self._low_conf = low_conf_threshold
 
     def extract(self, xlsx_path: Path) -> PracticeLatestResult:
@@ -139,6 +153,13 @@ class PracticeLatestExtractor:
         core_conf = core_bundle["field_confidence"]
         core_evidence = core_bundle["evidence"]
 
+        # Additional P&L expense lines (Reconstituted P&L actuals, Forecast fallback,
+        # therapist gross fees from Management Information).
+        expense_bundle = self._expenses.extract(sheet_map)
+        expense_mat = expense_bundle["materialized"]
+        expense_conf = expense_bundle["field_confidence"]
+        expense_evidence = expense_bundle["evidence"]
+
         # Field confidence (deterministic-ish)
         field_confidence: dict[str, float] = {}
         evidence: dict[str, Any] = {
@@ -175,6 +196,10 @@ class PracticeLatestExtractor:
         field_confidence.update(core_conf)
         evidence["core_metrics"] = core_evidence
 
+        # Expense lines confidence
+        field_confidence.update(expense_conf)
+        evidence["expense_lines"] = expense_evidence
+
         # accounts_period_end confidence: prefer certified date if present, else selected sheet date
         accounts_period_end = period_end or selected.as_of_date
         field_confidence["accounts_period_end"] = 1.0 if accounts_period_end else 0.0
@@ -207,6 +232,7 @@ class PracticeLatestExtractor:
                 "visited_on": visited_on.isoformat() if visited_on else None,
                 **cert_mat,
                 **core_mat,
+                **expense_mat,
             },
             "extraction": {
                 "field_confidence": field_confidence,
@@ -239,6 +265,159 @@ class PracticeLatestExtractor:
             missing_fields=missing_fields,
             low_conf_fields=low_conf_fields,
         )
+
+    def extract_snapshots(self, xlsx_path: Path) -> list[PracticeSnapshotResult]:
+        """
+        Produce one record per historical snapshot sheet (Calc/Calculation/Update tabs)
+        for a workbook, building a time series. Financials for each snapshot are read
+        from THAT sheet only; practice identity (and thus practice_key) is shared across
+        all snapshots so they link back to the latest-only `practices` row.
+        """
+        selected_all = self._selector.select_all(xlsx_path)
+        if not selected_all:
+            return []
+
+        grids = self._reader.read_xlsx(xlsx_path, max_rows=600, max_cols=140)
+        sheet_map = {g.sheet_name: g.df for g in grids}
+
+        # Stable identity from the best/latest qualifying sheet.
+        best = selected_all[0]
+        best_df = sheet_map.get(best.sheet_name)
+        ident = self._derive_identity(best_df) if best_df is not None else {}
+        practice_name = ident.get("practice_name")
+        postcode = ident.get("postcode")
+        practice_key = make_practice_key(practice_name=practice_name, postcode=postcode)
+        if not practice_key:
+            safe_name = re.sub(r"[^a-z0-9]+", " ", (practice_name or xlsx_path.stem).lower()).strip()
+            safe_name = re.sub(r"\s+", " ", safe_name)[:80] or "unknown"
+            practice_key = f"{safe_name}|UNKNOWN"
+        display_name = practice_name or xlsx_path.stem[:120]
+        visited_on_default = self._extract_visited_on(best_df) if best_df is not None else None
+        file_date = self._parse_date_from_name(xlsx_path.stem)
+
+        out: list[PracticeSnapshotResult] = []
+        seen_keys: set[str] = set()
+        for sel in selected_all:
+            df = sheet_map.get(sel.sheet_name)
+            if df is None:
+                continue
+
+            hits = self._metrics.extract_metrics(df)
+            assoc_amt, assoc_pct, period_end, _assoc_ev, assoc_conf = self._latest_certified_associates(hits)
+            cert_bundle = self._latest_certified_accounts_latest_prev(hits)
+            cert_mat = cert_bundle["materialized"]
+            core_bundle = self._materialize_core_and_income_split(hits, {sel.sheet_name: df})
+            core_mat = core_bundle["materialized"]
+            exp_bundle = self._expenses.extract({sel.sheet_name: df})
+            exp_mat = exp_bundle["materialized"]
+
+            visited_on = self._extract_visited_on(df) or visited_on_default
+
+            # Resolve the snapshot's as-of date: sheet date -> visited_on -> certified
+            # period end -> filename date.
+            as_of = sel.as_of_date or visited_on or period_end or file_date
+            if sel.as_of_date:
+                as_of_src = sel.as_of_date_source or "sheet_name"
+            elif visited_on:
+                as_of_src = "visited_on"
+            elif period_end:
+                as_of_src = "certified_period_end"
+            elif file_date:
+                as_of_src = "file_name"
+            else:
+                as_of_src = None
+
+            snapshot_key = f"{practice_key}|{as_of.isoformat() if as_of else 'NA'}|{sel.sheet_name}"
+            if snapshot_key in seen_keys:
+                continue
+            seen_keys.add(snapshot_key)
+
+            surgery_hit = self._best_hit(hits, key="number_of_surgeries")
+            surgery_count = (
+                int(surgery_hit.value_number) if (surgery_hit and surgery_hit.value_number is not None) else None
+            )
+            if surgery_count is None:
+                surgery_count = self._fallback_surgery_count(df)
+
+            mat: dict[str, Any] = {
+                "practice_key": practice_key,
+                "surgery_count": surgery_count,
+                "associate_cost_amount": str(assoc_amt) if assoc_amt is not None else None,
+                "associate_cost_pct": str(assoc_pct) if assoc_pct is not None else None,
+                "accounts_period_end": period_end.isoformat() if period_end else None,
+                "visited_on": visited_on.isoformat() if visited_on else None,
+                **cert_mat,
+                **core_mat,
+                **exp_mat,
+            }
+
+            raw_json: dict[str, Any] = {
+                "source_file": str(xlsx_path),
+                "snapshot": {
+                    "sheet_name": sel.sheet_name,
+                    "as_of_date": as_of.isoformat() if as_of else None,
+                    "as_of_date_source": as_of_src,
+                    "score": sel.score,
+                },
+                "practice": {
+                    "practice_name": practice_name,
+                    "postcode": postcode,
+                    "city": ident.get("city"),
+                    "county": ident.get("county"),
+                    "address_text": ident.get("address_text"),
+                },
+                "materialized": mat,
+                "extraction": {
+                    "expense_evidence": exp_bundle["evidence"],
+                },
+            }
+
+            out.append(
+                PracticeSnapshotResult(
+                    practice_key=practice_key,
+                    snapshot_key=snapshot_key,
+                    sheet_name=sel.sheet_name,
+                    as_of_date=as_of,
+                    as_of_date_source=as_of_src,
+                    display_name=display_name,
+                    source_file=str(xlsx_path),
+                    raw_json=raw_json,
+                )
+            )
+
+        return out
+
+    def _derive_identity(self, df: Any) -> dict[str, Any]:
+        p_name, p_addr, _conf = self._metrics.extract_practice_header(df)
+        p_name = to_text(p_name)
+        p_addr = to_text(p_addr)
+        addr_norm = normalize_uk_address(p_addr) if p_addr else None
+        return {
+            "practice_name": p_name,
+            "address_text": addr_norm.full_text if addr_norm else p_addr,
+            "postcode": addr_norm.postcode if addr_norm else None,
+            "county": addr_norm.county if addr_norm else None,
+            "city": addr_norm.city if addr_norm else None,
+            "address_line1": addr_norm.address_line1 if addr_norm else None,
+            "address_line2": addr_norm.address_line2 if addr_norm else None,
+        }
+
+    def _parse_date_from_name(self, stem: str) -> Optional[date]:
+        m = re.search(r"(\d{1,2})[._-](\d{1,2})[._-](\d{2,4})", stem)
+        if m:
+            dd, mm, yy = m.group(1), m.group(2), m.group(3)
+            return to_date(f"{dd}.{mm}.{yy}")
+        # Compact ddmmyy / ddmmyyyy (e.g. 290321, 14012019)
+        m = re.search(r"(?<!\d)(\d{2})(\d{2})(\d{2}|\d{4})(?!\d)", stem)
+        if m:
+            dd, mm, yy = m.group(1), m.group(2), m.group(3)
+            try:
+                day, mon = int(dd), int(mm)
+                if 1 <= day <= 31 and 1 <= mon <= 12:
+                    return to_date(f"{dd}.{mm}.{yy}")
+            except ValueError:
+                return None
+        return None
 
     def _best_hit(self, hits: list[MetricHit], *, key: str) -> Optional[MetricHit]:
         best: Optional[MetricHit] = None

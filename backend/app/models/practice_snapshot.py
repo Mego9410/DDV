@@ -9,31 +9,34 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, SQLModel
 
 
-class Practice(SQLModel, table=True):
-    __tablename__ = "practices"
+class PracticeSnapshot(SQLModel, table=True):
+    """
+    Historical time series: one row per practice per snapshot sheet
+    (Calc/Calculation/Update tabs within a workbook). Financial columns mirror
+    `practices`, but here many rows can share a `practice_key` (no latest-only
+    constraint). `practices` remains the curated latest-only headline.
+    """
+
+    __tablename__ = "practice_snapshots"
 
     id: UUID = Field(default_factory=uuid4, primary_key=True, index=True)
 
-    # Best-effort identity keys (can be corrected later via review UI)
+    # Stable upsert key: practice_key | as_of_date | sheet_name
+    snapshot_key: str = Field(index=True, unique=True)
+    practice_key: str = Field(index=True)
+
     display_name: str = Field(index=True)
-    address_text: Optional[str] = None
+    practice_name: Optional[str] = Field(default=None, index=True)
     postcode: Optional[str] = Field(default=None, index=True)
     city: Optional[str] = Field(default=None, index=True)
-    address_line1: Optional[str] = Field(default=None, index=True)
-    address_line2: Optional[str] = Field(default=None)
-    visited_on: Optional[date] = Field(default=None, index=True)
-
-    # Stable upsert key (latest-only ingestion)
-    practice_key: str = Field(index=True, unique=True)
-
-    # Analytics-friendly fields
-    practice_name: Optional[str] = Field(default=None, index=True)
     county: Optional[str] = Field(default=None, index=True)
-    surgery_count: Optional[int] = Field(default=None, index=True)
 
-    # Geospatial (optional; derived from postcode centroid)
-    lat: Optional[float] = Field(default=None, index=False)
-    lng: Optional[float] = Field(default=None, index=False)
+    # Snapshot timeframe
+    as_of_date: Optional[date] = Field(default=None, index=True)
+    as_of_date_source: Optional[str] = Field(default=None)
+    sheet_name: Optional[str] = Field(default=None)
+
+    surgery_count: Optional[int] = Field(default=None)
 
     # Core valuation metrics
     goodwill: Optional[float] = Field(default=None)
@@ -43,7 +46,7 @@ class Practice(SQLModel, table=True):
     grand_total: Optional[float] = Field(default=None)
 
     # NHS contract details (UDA block)
-    nhs_contract_number: Optional[str] = Field(default=None, index=True)
+    nhs_contract_number: Optional[str] = Field(default=None)
     uda_contract_value_gbp: Optional[float] = Field(default=None)
     uda_count: Optional[float] = Field(default=None)
     uda_rate_gbp: Optional[float] = Field(default=None)
@@ -71,11 +74,11 @@ class Practice(SQLModel, table=True):
     income_split_rent_applied_value: Optional[float] = Field(default=None)
 
     associate_cost_amount: Optional[float] = Field(default=None)
-    associate_cost_pct: Optional[float] = Field(default=None)  # 0..100
+    associate_cost_pct: Optional[float] = Field(default=None)
     accounts_period_end: Optional[date] = Field(default=None, index=True)
 
-    # Certified accounts (latest + previous year end)
-    certified_accounts_period_end_prev: Optional[date] = Field(default=None, index=True)
+    # Certified accounts (latest + previous year end as seen on this sheet)
+    certified_accounts_period_end_prev: Optional[date] = Field(default=None)
 
     cert_income_gbp: Optional[float] = Field(default=None)
     cert_income_percent: Optional[float] = Field(default=None)
@@ -117,22 +120,17 @@ class Practice(SQLModel, table=True):
     cert_net_profit_gbp_prev: Optional[float] = Field(default=None)
     cert_net_profit_percent_prev: Optional[float] = Field(default=None)
 
-    # Additional P&L expense lines (Reconstituted P&L actuals, Forecast fallback).
-    # accountancy_bookkeeping and it_software are combined because the source sheets
-    # usually merge them (e.g. "Software & IT", "Accountancy/bookeeper").
+    # Additional P&L expense lines
     accountancy_bookkeeping_gbp: Optional[float] = Field(default=None)
     light_heat_gbp: Optional[float] = Field(default=None)
     phone_telecoms_gbp: Optional[float] = Field(default=None)
     it_software_gbp: Optional[float] = Field(default=None)
     professional_subs_gbp: Optional[float] = Field(default=None)
     bank_charges_gbp: Optional[float] = Field(default=None)
-    # Therapist gross fees (best-effort, from Management Information section).
     therapist_gross_fees_gbp: Optional[float] = Field(default=None)
 
     source_file: Optional[str] = None
-
     raw_json: dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSONB, nullable=False))
 
     created_at: datetime = Field(default_factory=datetime.utcnow, index=True)
     updated_at: datetime = Field(default_factory=datetime.utcnow, index=True)
-
