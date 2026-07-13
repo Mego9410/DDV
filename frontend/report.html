@@ -61,18 +61,62 @@
               </div>
             </div>
             <div class="report-form-grid">
-              <label class="field">
-                <span class="field-label">Location</span>
-                <select class="field-control" id="locationSelect" name="location" required>
-                  <option value="">Loading locations…</option>
-                </select>
-              </label>
-              <label class="field">
-                <span class="field-label">Number of surgeries</span>
-                <select class="field-control" id="surgerySelect" name="surgeryCount" required>
-                  <option value="">Select…</option>
-                </select>
-              </label>
+              <div class="field" id="locationField">
+                <span class="field-label" id="locationLabel">Location</span>
+                <div class="dd" data-dd="location">
+                  <input type="hidden" id="locationSelect" name="location" value="" required />
+                  <button
+                    type="button"
+                    class="dd-trigger"
+                    id="locationTrigger"
+                    aria-haspopup="listbox"
+                    aria-expanded="false"
+                    aria-labelledby="locationLabel locationTrigger"
+                  >
+                    <span class="dd-trigger-text dd-placeholder">Select location…</span>
+                    <svg class="dd-chevron" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+                      <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                  </button>
+                  <div class="dd-panel" hidden>
+                    <div class="dd-search-wrap">
+                      <input
+                        type="search"
+                        class="dd-search"
+                        id="locationSearch"
+                        placeholder="Search locations…"
+                        autocomplete="off"
+                        aria-label="Search locations"
+                      />
+                    </div>
+                    <ul class="dd-list" id="locationList" role="listbox" aria-labelledby="locationLabel"></ul>
+                    <p class="dd-empty" id="locationEmpty" hidden>No locations match.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="field" id="surgeryField">
+                <span class="field-label" id="surgeryLabel">Number of surgeries</span>
+                <div class="dd" data-dd="surgery">
+                  <input type="hidden" id="surgerySelect" name="surgeryCount" value="" required />
+                  <button
+                    type="button"
+                    class="dd-trigger"
+                    id="surgeryTrigger"
+                    aria-haspopup="listbox"
+                    aria-expanded="false"
+                    aria-labelledby="surgeryLabel surgeryTrigger"
+                  >
+                    <span class="dd-trigger-text dd-placeholder">Select…</span>
+                    <svg class="dd-chevron" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+                      <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                  </button>
+                  <div class="dd-panel" hidden>
+                    <ul class="dd-list" id="surgeryList" role="listbox" aria-labelledby="surgeryLabel"></ul>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 

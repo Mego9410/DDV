@@ -1,6 +1,12 @@
 (() => {
-  const locationSelect = document.getElementById("locationSelect");
-  const surgerySelect = document.getElementById("surgerySelect");
+  const locationInput = document.getElementById("locationSelect");
+  const surgeryInput = document.getElementById("surgerySelect");
+  const locationTrigger = document.getElementById("locationTrigger");
+  const surgeryTrigger = document.getElementById("surgeryTrigger");
+  const locationList = document.getElementById("locationList");
+  const surgeryList = document.getElementById("surgeryList");
+  const locationSearch = document.getElementById("locationSearch");
+  const locationEmpty = document.getElementById("locationEmpty");
   const metricGroups = document.getElementById("metricGroups");
   const reportForm = document.getElementById("reportForm");
   const formError = document.getElementById("formError");
@@ -9,6 +15,9 @@
   const reportCohort = document.getElementById("reportCohort");
   const reportFootnote = document.getElementById("reportFootnote");
   const reportRows = document.getElementById("reportRows");
+
+  let locationOptions = [];
+  let openDropdown = null;
 
   const GROUP_LABELS = {
     income: "Income & outcomes",
@@ -42,6 +51,133 @@
     if (n > 0) return { text: `${abs}% higher than median`, cls: "is-above" };
     return { text: `${abs}% lower than median`, cls: "is-below" };
   }
+
+  function closeAllDropdowns() {
+    document.querySelectorAll(".dd.is-open").forEach((dd) => {
+      dd.classList.remove("is-open");
+      const panel = dd.querySelector(".dd-panel");
+      const trigger = dd.querySelector(".dd-trigger");
+      if (panel) panel.hidden = true;
+      if (trigger) trigger.setAttribute("aria-expanded", "false");
+    });
+    openDropdown = null;
+  }
+
+  function openDd(dd) {
+    if (!dd) return;
+    closeAllDropdowns();
+    dd.classList.add("is-open");
+    const panel = dd.querySelector(".dd-panel");
+    const trigger = dd.querySelector(".dd-trigger");
+    if (panel) panel.hidden = false;
+    if (trigger) trigger.setAttribute("aria-expanded", "true");
+    openDropdown = dd;
+    const search = dd.querySelector(".dd-search");
+    if (search) {
+      search.value = "";
+      filterLocations("");
+      setTimeout(() => search.focus(), 0);
+    }
+  }
+
+  function setDdValue(dd, value, label) {
+    const hidden = dd.querySelector('input[type="hidden"]');
+    const text = dd.querySelector(".dd-trigger-text");
+    if (hidden) hidden.value = value;
+    if (text) {
+      text.textContent = label;
+      text.classList.toggle("dd-placeholder", !value);
+    }
+    dd.querySelectorAll(".dd-option").forEach((opt) => {
+      const selected = opt.dataset.value === String(value);
+      opt.classList.toggle("is-selected", selected);
+      opt.setAttribute("aria-selected", selected ? "true" : "false");
+    });
+  }
+
+  function renderOptions(listEl, options, { selectedValue = "" } = {}) {
+    listEl.innerHTML = "";
+    for (const opt of options) {
+      const li = document.createElement("li");
+      li.className = "dd-option";
+      li.setAttribute("role", "option");
+      li.dataset.value = String(opt.value);
+      li.textContent = opt.label;
+      const selected = String(opt.value) === String(selectedValue);
+      li.classList.toggle("is-selected", selected);
+      li.setAttribute("aria-selected", selected ? "true" : "false");
+      listEl.appendChild(li);
+    }
+  }
+
+  function filterLocations(query) {
+    const q = String(query || "").trim().toLowerCase();
+    const filtered = !q
+      ? locationOptions
+      : locationOptions.filter((o) => o.label.toLowerCase().includes(q));
+    renderOptions(locationList, filtered, { selectedValue: locationInput.value });
+    locationEmpty.hidden = filtered.length > 0;
+  }
+
+  function wireDropdown(dd) {
+    const trigger = dd.querySelector(".dd-trigger");
+    const panel = dd.querySelector(".dd-panel");
+    const list = dd.querySelector(".dd-list");
+    if (!trigger || !panel || !list) return;
+
+    trigger.addEventListener("click", (e) => {
+      e.preventDefault();
+      if (dd.classList.contains("is-open")) closeAllDropdowns();
+      else openDd(dd);
+    });
+
+    list.addEventListener("click", (e) => {
+      const opt = e.target.closest(".dd-option");
+      if (!opt) return;
+      setDdValue(dd, opt.dataset.value, opt.textContent);
+      closeAllDropdowns();
+      trigger.focus();
+    });
+
+    trigger.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowDown" || e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        openDd(dd);
+      } else if (e.key === "Escape") {
+        closeAllDropdowns();
+      }
+    });
+  }
+
+  document.querySelectorAll(".dd").forEach(wireDropdown);
+
+  locationSearch?.addEventListener("input", () => {
+    filterLocations(locationSearch.value);
+  });
+
+  locationSearch?.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      closeAllDropdowns();
+      locationTrigger.focus();
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      const first = locationList.querySelector(".dd-option");
+      if (first) {
+        setDdValue(locationTrigger.closest(".dd"), first.dataset.value, first.textContent);
+        closeAllDropdowns();
+        locationTrigger.focus();
+      }
+    }
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!openDropdown) return;
+    if (!e.target.closest(".dd")) closeAllDropdowns();
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && openDropdown) closeAllDropdowns();
+  });
 
   function setError(msg) {
     if (!msg) {
@@ -268,21 +404,21 @@
       throw new Error(data.detail || "Could not load report options");
     }
 
-    locationSelect.innerHTML = '<option value="">Select location…</option>';
-    for (const loc of data.locations || []) {
-      const opt = document.createElement("option");
-      opt.value = loc;
-      opt.textContent = loc;
-      locationSelect.appendChild(opt);
-    }
+    locationOptions = (data.locations || []).map((loc) => ({ value: loc, label: loc }));
+    renderOptions(locationList, locationOptions);
+    locationTrigger.querySelector(".dd-trigger-text").textContent = "Select location…";
+    locationTrigger.querySelector(".dd-trigger-text").classList.add("dd-placeholder");
+    locationInput.value = "";
+    locationEmpty.hidden = locationOptions.length > 0;
 
-    surgerySelect.innerHTML = '<option value="">Select…</option>';
-    for (const s of data.surgeryCounts || []) {
-      const opt = document.createElement("option");
-      opt.value = String(s.value);
-      opt.textContent = s.label;
-      surgerySelect.appendChild(opt);
-    }
+    const surgeryOptions = (data.surgeryCounts || []).map((s) => ({
+      value: String(s.value),
+      label: s.label,
+    }));
+    renderOptions(surgeryList, surgeryOptions);
+    surgeryTrigger.querySelector(".dd-trigger-text").textContent = "Select…";
+    surgeryTrigger.querySelector(".dd-trigger-text").classList.add("dd-placeholder");
+    surgeryInput.value = "";
 
     renderMetricCatalog(data.metrics || []);
   }
@@ -291,16 +427,18 @@
     e.preventDefault();
     setError("");
 
-    const location = locationSelect.value.trim();
-    const surgeryCount = Number(surgerySelect.value);
+    const location = locationInput.value.trim();
+    const surgeryCount = Number(surgeryInput.value);
     if (!location) {
       setError("Choose a location.");
-      locationSelect.focus();
+      locationTrigger.focus();
+      openDd(locationTrigger.closest(".dd"));
       return;
     }
     if (!Number.isInteger(surgeryCount) || surgeryCount < 1) {
       setError("Choose number of surgeries.");
-      surgerySelect.focus();
+      surgeryTrigger.focus();
+      openDd(surgeryTrigger.closest(".dd"));
       return;
     }
 
@@ -341,6 +479,12 @@
 
   loadOptions().catch((err) => {
     setError(String(err.message || err));
-    locationSelect.innerHTML = '<option value="">Unable to load locations</option>';
+    const text = locationTrigger.querySelector(".dd-trigger-text");
+    if (text) {
+      text.textContent = "Unable to load locations";
+      text.classList.add("dd-placeholder");
+    }
+    locationTrigger.disabled = true;
+    surgeryTrigger.disabled = true;
   });
 })();

@@ -253,10 +253,7 @@ body.report-page {
   padding: 13px 40px 13px 14px;
   border: 1.5px solid var(--border);
   border-radius: var(--r-md);
-  background:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238C8C88' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")
-    no-repeat right 14px center / 16px,
-    var(--surface);
+  background: var(--surface);
   color: var(--fg-1);
   font-family: var(--font-sans);
   font-size: 15px;
@@ -269,6 +266,167 @@ body.report-page {
   outline: none;
   border-color: var(--gold);
   box-shadow: var(--ring-gold);
+}
+
+/* ---------- Custom dropdown ---------- */
+.dd {
+  position: relative;
+}
+
+.dd-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 13px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--fg-1);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.3;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+
+.dd-trigger:hover {
+  border-color: var(--gold-tint-2);
+}
+
+.dd-trigger:focus,
+.dd.is-open .dd-trigger {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: var(--ring-gold);
+}
+
+.dd-trigger:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.dd-trigger-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dd-placeholder {
+  color: var(--fg-4);
+  font-weight: 500;
+}
+
+.dd-chevron {
+  flex: none;
+  color: var(--fg-3);
+  transition: transform var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+.dd.is-open .dd-chevron {
+  transform: rotate(180deg);
+  color: var(--gold-deep);
+}
+
+.dd-panel {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  border: 1.5px solid var(--gold-tint-2);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  animation: report-fade-up 160ms var(--ease-out) both;
+}
+
+.dd-search-wrap {
+  padding: 10px 10px 8px;
+  border-bottom: 1px solid var(--border);
+  background: #fffdf8;
+}
+
+.dd-search {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--fg-1);
+  font-family: var(--font-sans);
+  font-size: 14px;
+}
+
+.dd-search:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: var(--ring-gold);
+}
+
+.dd-list {
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  max-height: 240px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--gold-tint-2) transparent;
+}
+
+.dd-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.dd-list::-webkit-scrollbar-thumb {
+  background: var(--gold-tint-2);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.dd-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dd-option {
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 14.5px;
+  font-weight: 500;
+  color: var(--fg-1);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+
+.dd-option:hover,
+.dd-option:focus-visible {
+  background: var(--gold-tint);
+  color: var(--ink);
+  outline: none;
+}
+
+.dd-option.is-selected {
+  background: var(--gold);
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.dd-option.is-selected:hover {
+  background: var(--gold-hover);
+}
+
+.dd-empty {
+  margin: 0;
+  padding: 16px 14px;
+  font-size: 14px;
+  color: var(--fg-3);
+  text-align: center;
 }
 
 .metric-fieldset {
