@@ -88,10 +88,9 @@
     return `${n > 0 ? "+" : ""}${n.toFixed(1)}%`;
   }
 
-  // Position line: your value and peer medians on one pounds axis.
-  // Always start at £0 so distance is representative of absolute amounts —
-  // otherwise close medians sit on the left edge whenever you are higher,
-  // which makes a modest gap look extreme.
+  // Mixed scale:
+  //  - tight cluster (UDA-style): zoom into the value range so markers separate
+  //  - wide / outlier: £0-based axis with soft-cap so gaps stay representative
   function buildPositionLine(row) {
     const you = Number(row.your_value);
     const nat =
@@ -108,47 +107,97 @@
       return `<div class="bench"><p class="compare-note">No figures to plot.</p></div>`;
     }
 
-    const peak = Math.max(...pts);
+    const rawMin = Math.min(...pts);
+    const rawMax = Math.max(...pts);
     const peerRef = Math.max(nat || 0, loc || 0, same || 0);
-    // Keep headroom above the top point, and ensure the scale is wide enough
-    // that peer medians aren't crushed against the end when you are an outlier.
-    let max = Math.max(peak * 1.06, peerRef > 0 ? peerRef * 2 : peak * 1.06);
-    // Soft-cap extreme outliers: if you're more than ~2× the peers, don't let
-    // the axis chase all the way to your figure — park you near the right edge.
-    const softCap = peerRef > 0 ? peerRef * 2.15 : max;
-    const plotYou = you > softCap ? softCap : you;
-    if (you > softCap) max = softCap * 1.04;
+    const mid = peerRef > 0 ? peerRef : (rawMin + rawMax) / 2 || 1;
+    const rawSpan = rawMax - rawMin;
+    const relSpread = rawSpan / mid;
+    const outlierHigh = peerRef > 0 && you > peerRef * 1.55;
+    const outlierLow = peerRef > 0 && you < peerRef * 0.65;
 
-    const min = 0;
+    let min;
+    let max;
+    let plotYou = you;
+
+    if (!outlierHigh && !outlierLow && relSpread <= 0.28) {
+      // Zoom: expand around the cluster so close values remain readable
+      const pad = Math.max(rawSpan * 0.55, mid * 0.04, Math.abs(mid) * 0.02);
+      min = Math.max(0, rawMin - pad);
+      max = rawMax + pad;
+      if (max - min < mid * 0.08) {
+        min = Math.max(0, mid - mid * 0.04);
+        max = mid + mid * 0.04;
+      }
+    } else if (outlierHigh || outlierLow || relSpread >= 0.55) {
+      // Absolute: start at £0; soft-cap extreme highs so the chart doesn't look broken
+      min = 0;
+      const peak = rawMax;
+      max = Math.max(peak * 1.06, peerRef > 0 ? peerRef * 2 : peak * 1.06);
+      const softCap = peerRef > 0 ? peerRef * 2.15 : max;
+      if (you > softCap) {
+        plotYou = softCap;
+        max = softCap * 1.04;
+      }
+    } else {
+      // Balanced: peer-centred window — not full £0, not a microscopic zoom
+      const half = Math.max(rawSpan * 0.75, mid * 0.35);
+      min = Math.max(0, Math.min(rawMin, mid) - half * 0.25);
+      max = Math.max(rawMax, mid) + half * 0.35;
+    }
+
     const span = max - min || 1;
-    const x = (v) => {
+    const xRaw = (v) => {
       const t = ((Number(v) - min) / span) * 100;
       return Math.max(2, Math.min(98, t));
     };
+
+    // Keep marker order but enforce a minimum visual gap so labels don't collide
+    function spreadMarkers(items, minGap) {
+      if (items.length < 2) return items;
+      const sorted = [...items].sort((a, b) => a.x - b.x || a.priority - b.priority);
+      for (let i = 1; i < sorted.length; i++) {
+        const floor = sorted[i - 1].x + minGap;
+        if (sorted[i].x < floor) sorted[i].x = floor;
+      }
+      if (sorted[sorted.length - 1].x > 98) {
+        const overflow = sorted[sorted.length - 1].x - 98;
+        for (const it of sorted) it.x = Math.max(2, it.x - overflow);
+        for (let i = 1; i < sorted.length; i++) {
+          const floor = sorted[i - 1].x + minGap;
+          if (sorted[i].x < floor) sorted[i].x = Math.min(98, floor);
+        }
+      }
+      return sorted;
+    }
 
     const dir = benchDir(hasLocal ? row.pct_vs_local : row.pct_vs_national);
     const natDir = benchDir(row.pct_vs_national);
     const locDir = benchDir(row.pct_vs_local);
 
-    const xYou = x(plotYou);
-    const barAnchor = hasLocal ? loc : nat;
-    const barL = barAnchor != null ? Math.min(x(barAnchor), xYou) : xYou;
-    const barW = barAnchor != null ? Math.abs(xYou - x(barAnchor)) : 0;
-    const youLab =
-      xYou >= 55
-        ? `right:${(100 - xYou).toFixed(1)}%;text-align:right`
-        : `left:${xYou.toFixed(1)}%;transform:translateX(-50%)`;
+    const markers = [{ id: "you", x: xRaw(plotYou), priority: 0 }];
+    if (nat != null) markers.push({ id: "nat", x: xRaw(nat), priority: 1 });
+    if (hasLocal) markers.push({ id: "loc", x: xRaw(loc), priority: 2 });
+    const placed = spreadMarkers(markers, relSpread <= 0.28 ? 11 : 7);
+    const byId = Object.fromEntries(placed.map((m) => [m.id, m.x]));
 
-    // Separate national/local ticks when they would otherwise stack on top of each other
-    let natX = nat != null ? x(nat) : null;
-    let locX = hasLocal ? x(loc) : null;
-    if (natX != null && locX != null && Math.abs(natX - locX) < 3.5) {
-      if (nat >= loc) {
-        natX = Math.min(96, locX + 3.5);
-      } else {
-        locX = Math.min(96, natX + 3.5);
-      }
-    }
+    const xYou = byId.you;
+    const natX = nat != null ? byId.nat : null;
+    const locX = hasLocal ? byId.loc : null;
+
+    const barAnchorX = hasLocal ? locX : natX;
+    const barL = barAnchorX != null ? Math.min(barAnchorX, xYou) : xYou;
+    const barW = barAnchorX != null ? Math.abs(xYou - barAnchorX) : 0;
+
+    // Prefer putting the You label on the side with more free space / away from ticks
+    const nearestTick = [natX, locX]
+      .filter((v) => v != null)
+      .reduce((best, v) => (best == null || Math.abs(v - xYou) < Math.abs(best - xYou) ? v : best), null);
+    const labelRight =
+      nearestTick != null ? xYou < nearestTick : xYou < 55;
+    const youLab = labelRight
+      ? `left:${xYou.toFixed(1)}%;transform:translateX(10px)`
+      : `right:${(100 - xYou).toFixed(1)}%;text-align:right;transform:translateX(-10px)`;
 
     let ticks = "";
     if (nat != null && natX != null) {
