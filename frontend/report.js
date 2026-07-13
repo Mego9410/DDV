@@ -13,7 +13,6 @@
   const btnGenerate = document.getElementById("btnGenerate");
   const reportOutput = document.getElementById("reportOutput");
   const reportCohort = document.getElementById("reportCohort");
-  const reportFootnote = document.getElementById("reportFootnote");
   const reportRows = document.getElementById("reportRows");
 
   let locationOptions = [];
@@ -289,30 +288,6 @@
       ? `Local peer group: ${cohort.label}`
       : "Local peer group selected from your location and surgery count.";
 
-    const notes = [];
-    if (cohort.expansion_step > 1) {
-      notes.push(
-        "The local pool was widened (surgery band and/or distance) so there are enough practices to compare fairly."
-      );
-    }
-    if (cohort.geo_missing > 0 && cohort.mode === "radius") {
-      notes.push(
-        `${cohort.geo_missing} practices without map coordinates were excluded from the distance filter.`
-      );
-    }
-    if (cohort.geo_unresolved) {
-      notes.push(
-        "We could not resolve coordinates for this location, so the local group uses place-name matching only."
-      );
-    }
-    if (notes.length) {
-      reportFootnote.hidden = false;
-      reportFootnote.textContent = notes.join(" ");
-    } else {
-      reportFootnote.hidden = true;
-      reportFootnote.textContent = "";
-    }
-
     reportRows.innerHTML = "";
     const metrics = Array.isArray(data?.metrics) ? data.metrics : [];
 
@@ -345,7 +320,6 @@
         <div class="compare-label">National median</div>
         <div class="compare-median">${formatMoney(row.national?.median, row.id)}</div>
         <div class="compare-delta ${natDelta.cls}">${natDelta.text}</div>
-        <div class="compare-n">Based on ${row.national?.n ?? 0} practices</div>
       `;
 
       const locBlock = document.createElement("div");
@@ -353,7 +327,7 @@
         locBlock.className = "compare-block";
         locBlock.innerHTML = `
           <div class="compare-label">Local peers</div>
-          <div class="compare-note">Local pool too small to compare (fewer than 5 practices with this figure).</div>
+          <div class="compare-note">Not enough local peers with this figure to compare.</div>
         `;
       } else {
         const locDelta = formatPctDelta(row.pct_vs_local);
@@ -362,7 +336,6 @@
           <div class="compare-label">Local peer median</div>
           <div class="compare-median">${formatMoney(row.local?.median, row.id)}</div>
           <div class="compare-delta ${locDelta.cls}">${locDelta.text}</div>
-          <div class="compare-n">Based on ${row.local?.n ?? 0} practices</div>
         `;
       }
 
@@ -372,13 +345,13 @@
       el.appendChild(head);
       el.appendChild(compare);
 
-      if (row.national_same_size?.n > 0 && row.national_same_size?.median != null) {
+      if (row.national_same_size?.median != null) {
         const same = document.createElement("div");
         same.className = "report-same-size";
         same.textContent = `National same-size median: ${formatMoney(
           row.national_same_size.median,
           row.id
-        )} (${row.national_same_size.n} practices)`;
+        )}`;
         el.appendChild(same);
       }
 
