@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#FFFFFF" />
+    <meta name="theme-color" content="#FBFAF5" />
     <title>Dental Data Vault — See where your practice sits</title>
     <meta
       name="description"
@@ -19,130 +19,150 @@
     <link rel="stylesheet" href="./home.css" />
   </head>
   <body class="home-page">
-    <div class="bg home-bg" aria-hidden="true"></div>
+    <div class="bg" aria-hidden="true"></div>
 
-    <header class="home-nav">
-      <div class="home-nav-inner">
-        <div class="brand">
+    <header class="hp-nav">
+      <div class="hp-nav-inner">
+        <a class="brand" href="/" aria-label="Dental Data Vault home">
           <div class="logo" aria-hidden="true">FTA</div>
           <div class="brand-text">
             <span class="brand-name">Dental Data Vault</span>
             <span class="brand-sub">by Frank Taylor &amp; Associates</span>
           </div>
-        </div>
-        <nav class="home-nav-actions" aria-label="Primary">
-          <a class="home-nav-link" href="#why">Why benchmark</a>
-          <a class="home-nav-link" href="#reveal">What you get</a>
-          <a class="btn btn-primary home-nav-cta" href="/report">Unlock your insights</a>
+        </a>
+        <nav class="hp-nav-actions" aria-label="Primary">
+          <a class="hp-nav-link" href="#why">Why benchmark</a>
+          <a class="hp-nav-link" href="#reveal">What you get</a>
+          <a class="hp-nav-link" href="#how">How it works</a>
+          <a class="btn btn-primary hp-nav-cta" href="/report">Unlock your insights</a>
         </nav>
       </div>
     </header>
 
-    <main class="home-shell">
+    <main class="hp">
       <!-- ===================== HERO ===================== -->
-      <section class="home-hero">
-        <div class="home-hero-content">
-          <span class="home-badge">
-            <span class="home-badge-dot" aria-hidden="true"></span>
-            37 years of UK dental practice data · sharpened by AI
-          </span>
-          <p class="home-quote">“You’re standing on a mountain of value.”</p>
-          <h1 class="home-title">See where your<br /><span class="home-title-accent">practice sits.</span></h1>
-          <p class="home-lede">
-            Enter your own figures and compare them to national and local peer medians — turnover,
-            costs, income mix and more. A clear read on your position, not a practice valuation.
-          </p>
-          <div class="home-hero-actions">
-            <a class="btn btn-primary home-hero-btn" href="/report">
-              Unlock your insights
-              <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
-                <path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
-              </svg>
-            </a>
-            <a class="btn btn-ghost home-hero-btn" href="#why">Why it matters</a>
+      <section class="hp-hero">
+        <div class="hp-hero-grid">
+          <div class="hp-hero-main">
+            <p class="eyebrow">37 years of UK dental data · sharpened by AI</p>
+            <h1 class="hp-hero-title">
+              See where your<br />practice <em>sits.</em>
+            </h1>
+            <p class="hp-hero-lede">
+              Enter your own figures and compare them to national and local peer medians — turnover,
+              costs, income mix and more. A clear read on your position, not a practice valuation.
+            </p>
+            <div class="hp-hero-actions">
+              <a class="btn btn-primary hp-cta-btn" href="/report">
+                Unlock your insights
+                <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                  <path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </a>
+              <a class="hp-textlink" href="#why">Why it matters</a>
+            </div>
+            <p class="hp-hero-note">
+              Free · No login · Figures only, never named practices
+            </p>
           </div>
-          <p class="home-hero-note">
-            Built on <strong>37 years of practice data</strong> · Free · No login · Figures only, never named practices
-          </p>
+
+          <aside class="hp-hero-aside">
+            <figure class="hp-quote">
+              <blockquote>You’re standing on a mountain of value.</blockquote>
+              <figcaption>The premise behind the Vault</figcaption>
+            </figure>
+          </aside>
         </div>
 
-        <div class="home-mountain" aria-hidden="true">
-          <svg viewBox="0 0 1200 320" preserveAspectRatio="none" role="presentation">
-            <path class="mtn mtn-3" d="M0 320 L0 190 L230 110 L430 200 L650 90 L860 210 L1050 120 L1200 200 L1200 320 Z" />
-            <path class="mtn mtn-2" d="M0 320 L0 240 L200 170 L410 250 L600 160 L820 260 L1010 180 L1200 250 L1200 320 Z" />
-            <path class="mtn mtn-1" d="M0 320 L0 285 L260 235 L470 290 L690 230 L900 295 L1080 245 L1200 290 L1200 320 Z" />
+        <div class="hp-ridge" aria-hidden="true">
+          <svg viewBox="0 0 1200 120" preserveAspectRatio="none" role="presentation">
+            <polyline
+              points="0,112 150,86 300,98 470,54 640,84 820,40 1010,74 1200,52"
+              fill="none" stroke="currentColor" stroke-width="1.5"
+              stroke-linecap="round" stroke-linejoin="round" />
+            <circle cx="820" cy="40" r="4" class="hp-ridge-peak" />
           </svg>
         </div>
       </section>
 
-      <!-- ===================== STATS STRIP ===================== -->
-      <section class="home-stats" aria-label="Frank Taylor & Associates by the numbers">
-        <div class="home-stat">
-          <span class="home-stat-num">37</span>
-          <span class="home-stat-label">Years of dental data</span>
+      <!-- ===================== STATS LEDGER ===================== -->
+      <section class="hp-ledger" aria-label="Frank Taylor & Associates by the numbers">
+        <div class="hp-ledger-item">
+          <span class="hp-ledger-num">37</span>
+          <span class="hp-ledger-label">Years of dental data</span>
         </div>
-        <div class="home-stat">
-          <span class="home-stat-num">6K+</span>
-          <span class="home-stat-label">Dental partners</span>
+        <div class="hp-ledger-item">
+          <span class="hp-ledger-num">6,000<span class="hp-ledger-unit">+</span></span>
+          <span class="hp-ledger-label">Dental partners</span>
         </div>
-        <div class="home-stat">
-          <span class="home-stat-num">400k+</span>
-          <span class="home-stat-label">Data points</span>
+        <div class="hp-ledger-item">
+          <span class="hp-ledger-num">400k<span class="hp-ledger-unit">+</span></span>
+          <span class="hp-ledger-label">Data points</span>
         </div>
-        <div class="home-stat">
-          <span class="home-stat-num">£1B+</span>
-          <span class="home-stat-label">Practices sold</span>
-        </div>
-      </section>
-
-      <!-- ===================== WHY YOU NEED ONE (PAINS → REPORT) ===================== -->
-      <section class="home-section" id="why" aria-labelledby="whyHeading">
-        <div class="home-section-head">
-          <p class="home-section-kicker">Why benchmark</p>
-          <h2 class="home-section-title" id="whyHeading">You need a reference point</h2>
-          <p class="home-section-lede">
-            Most owners know their own figures — but not whether those figures are typical, high or
-            low for a practice like theirs. That gap matters long before any offer lands.
-          </p>
-        </div>
-        <div class="home-cards">
-          <article class="home-card">
-            <span class="home-card-num">01</span>
-            <h3 class="home-card-hook">Flying blind on the figures</h3>
-            <p class="home-card-land">
-              You know your turnover and costs, but not how they compare to similar practices in your
-              area. Without that context, every conversation — with a buyer, a bank or yourself —
-              starts from guesswork.
-            </p>
-          </article>
-          <article class="home-card">
-            <span class="home-card-num">02</span>
-            <h3 class="home-card-hook">The mix keeps shifting</h3>
-            <p class="home-card-land">
-              A key associate leaves, NHS mix changes, rent creeps up — your figures move and it’s
-              hard to tell what’s normal drift and what’s a real outlier. A benchmark shows you
-              what’s changed against your peers.
-            </p>
-          </article>
-          <article class="home-card">
-            <span class="home-card-num">03</span>
-            <h3 class="home-card-hook">Admin eats the analysis</h3>
-            <p class="home-card-land">
-              CQC, GDC, NHS, HR — the admin never stops, and comparing your numbers to the market
-              never reaches the top of the list. The report does that comparison for you in minutes.
-            </p>
-          </article>
+        <div class="hp-ledger-item">
+          <span class="hp-ledger-num">£1bn<span class="hp-ledger-unit">+</span></span>
+          <span class="hp-ledger-label">Practices sold</span>
         </div>
       </section>
 
-      <!-- ===================== THE DEAL TABLE (DARK BAND) ===================== -->
-      <section class="home-band" aria-labelledby="dealHeading">
-        <div class="home-band-inner">
-          <p class="home-band-kicker">The reason it matters</p>
-          <h2 class="home-band-title" id="dealHeading">
+      <!-- ===================== WHY YOU NEED ONE ===================== -->
+      <section class="hp-section" id="why" aria-labelledby="whyHeading">
+        <div class="hp-shead">
+          <span class="hp-shead-idx">01</span>
+          <div class="hp-shead-body">
+            <p class="eyebrow">Why benchmark</p>
+            <h2 class="hp-shead-title" id="whyHeading">You need a reference point</h2>
+            <p class="hp-shead-lede">
+              Most owners know their own figures — but not whether those figures are typical, high or
+              low for a practice like theirs. That gap matters long before any offer lands.
+            </p>
+          </div>
+        </div>
+
+        <ol class="hp-ruled">
+          <li class="hp-ruled-item">
+            <span class="hp-ruled-num">01</span>
+            <div class="hp-ruled-text">
+              <h3>Flying blind on the figures</h3>
+              <p>
+                You know your turnover and costs, but not how they compare to similar practices in your
+                area. Without that context, every conversation — with a buyer, a bank or yourself —
+                starts from guesswork.
+              </p>
+            </div>
+          </li>
+          <li class="hp-ruled-item">
+            <span class="hp-ruled-num">02</span>
+            <div class="hp-ruled-text">
+              <h3>The mix keeps shifting</h3>
+              <p>
+                A key associate leaves, NHS mix changes, rent creeps up — your figures move and it’s
+                hard to tell what’s normal drift and what’s a real outlier. A benchmark shows you
+                what’s changed against your peers.
+              </p>
+            </div>
+          </li>
+          <li class="hp-ruled-item">
+            <span class="hp-ruled-num">03</span>
+            <div class="hp-ruled-text">
+              <h3>Admin eats the analysis</h3>
+              <p>
+                CQC, GDC, NHS, HR — the admin never stops, and comparing your numbers to the market
+                never reaches the top of the list. The report does that comparison for you in minutes.
+              </p>
+            </div>
+          </li>
+        </ol>
+      </section>
+
+      <!-- ===================== THE DEAL (DARK BAND) ===================== -->
+      <section class="hp-band" aria-labelledby="dealHeading">
+        <div class="hp-band-inner">
+          <p class="eyebrow eyebrow--onink">The reason it matters</p>
+          <h2 class="hp-band-title" id="dealHeading">
             One shot at the biggest transaction of your life
           </h2>
-          <div class="home-band-cols">
+          <div class="hp-band-cols">
             <p>
               The offer sounds good. But what does “good” actually mean? The headline figure can be
               real and the structure still hands half back — deferred payments, earn-outs tied to
@@ -154,66 +174,70 @@
               sellers only discover what a good deal looked like after they’ve accepted a worse one.
             </p>
           </div>
-          <p class="home-band-punch">You can’t benchmark what you haven’t tested. The vault is the test.</p>
+          <p class="hp-band-punch">You can’t benchmark what you haven’t tested. The Vault is the test.</p>
         </div>
       </section>
 
-      <!-- ===================== WHAT YOU GET (VALUE PROPS) ===================== -->
-      <section class="home-section" id="reveal" aria-labelledby="revealHeading">
-        <div class="home-section-head">
-          <p class="home-section-kicker">What you get</p>
-          <h2 class="home-section-title" id="revealHeading">Your data, turned into clear answers</h2>
-          <p class="home-section-lede">
-            We’ve harnessed 37 years of practice data into one view of how your figures compare —
-            locally and nationally.
-          </p>
+      <!-- ===================== WHAT YOU GET ===================== -->
+      <section class="hp-section" id="reveal" aria-labelledby="revealHeading">
+        <div class="hp-shead">
+          <span class="hp-shead-idx">02</span>
+          <div class="hp-shead-body">
+            <p class="eyebrow">What you get</p>
+            <h2 class="hp-shead-title" id="revealHeading">Your data, turned into clear answers</h2>
+            <p class="hp-shead-lede">
+              We’ve harnessed 37 years of practice data into one view of how your figures compare —
+              locally and nationally.
+            </p>
+          </div>
         </div>
-        <div class="home-features">
-          <article class="home-feature">
-            <span class="home-feature-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="22" height="22">
-                <path d="M4 20V7M10 20V4M16 20v-9M20 20H3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+
+        <div class="hp-features">
+          <article class="hp-feature">
+            <span class="hp-feature-mark" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="24" height="24">
+                <path d="M4 20V7M10 20V4M16 20v-9M20 20H3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
             </span>
-            <h3 class="home-feature-title">Benchmark your practice</h3>
-            <p class="home-feature-copy">
+            <h3 class="hp-feature-title">Benchmark your practice</h3>
+            <p class="hp-feature-copy">
               Compare turnover, rent, associate costs and more against similar practices — like-for-like
               on size and location.
             </p>
           </article>
-          <article class="home-feature">
-            <span class="home-feature-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="22" height="22">
-                <path d="M3 17l6-6 4 4 8-8M21 7v5M21 7h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          <article class="hp-feature">
+            <span class="hp-feature-mark" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="24" height="24">
+                <path d="M3 17l6-6 4 4 8-8M21 7v5M21 7h-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
             </span>
-            <h3 class="home-feature-title">Spot where you lag</h3>
-            <p class="home-feature-copy">
+            <h3 class="hp-feature-title">Spot where you lag</h3>
+            <p class="hp-feature-copy">
               See which lines are above or below peer medians — the gaps that are easy to miss when
               you only ever look at your own accounts.
             </p>
           </article>
-          <article class="home-feature">
-            <span class="home-feature-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="22" height="22">
-                <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2" />
-                <path d="M12 8v5l3 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          <article class="hp-feature">
+            <span class="hp-feature-mark" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="24" height="24">
+                <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8" />
+                <path d="M12 8v5l3 2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
             </span>
-            <h3 class="home-feature-title">Local &amp; national view</h3>
-            <p class="home-feature-copy">
+            <h3 class="hp-feature-title">Local &amp; national view</h3>
+            <p class="hp-feature-copy">
               A deeper understanding of your position in your own area, set against the whole market —
               not a national average that hides your reality.
             </p>
           </article>
-          <article class="home-feature">
-            <span class="home-feature-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="22" height="22">
-                <path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.5.4.5 1 .5 1.6h6c0-.6 0-1.2.5-1.6A6 6 0 0 0 12 3Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          <article class="hp-feature">
+            <span class="hp-feature-mark" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="24" height="24">
+                <path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.5.4.5 1 .5 1.6h6c0-.6 0-1.2.5-1.6A6 6 0 0 0 12 3Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
             </span>
-            <h3 class="home-feature-title">Confident decisions</h3>
-            <p class="home-feature-copy">
+            <h3 class="hp-feature-title">Confident decisions</h3>
+            <p class="hp-feature-copy">
               Data-driven answers you can act on — so you adapt, thrive and stay ahead in an
               ever-changing dental landscape.
             </p>
@@ -222,115 +246,138 @@
       </section>
 
       <!-- ===================== WHAT IT MEANS (PAYOFFS) ===================== -->
-      <section class="home-section" aria-labelledby="payoffHeading">
-        <div class="home-section-head">
-          <p class="home-section-kicker">What it means for you</p>
-          <h2 class="home-section-title" id="payoffHeading">Walk in knowing your numbers</h2>
-          <p class="home-section-lede">
-            The three things every exit-ready principal wants — within reach the moment you run your
-            benchmark.
-          </p>
+      <section class="hp-section" aria-labelledby="payoffHeading">
+        <div class="hp-shead">
+          <span class="hp-shead-idx">03</span>
+          <div class="hp-shead-body">
+            <p class="eyebrow">What it means for you</p>
+            <h2 class="hp-shead-title" id="payoffHeading">Walk in knowing your numbers</h2>
+            <p class="hp-shead-lede">
+              The three things every exit-ready principal wants — within reach the moment you run your
+              benchmark.
+            </p>
+          </div>
         </div>
-        <div class="home-cards">
-          <article class="home-card home-card--payoff">
-            <span class="home-card-check" aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="18" height="18">
-                <path d="M5 13l4 4L19 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
-              </svg>
-            </span>
-            <h3 class="home-card-hook">Sell with knowledge</h3>
-            <p class="home-card-land">
-              Judge any offer — corporate, neighbour or friend — knowing exactly where it ranks and
-              what the terms really cost. No more saying yes because you liked the person across the
-              table.
-            </p>
-          </article>
-          <article class="home-card home-card--payoff">
-            <span class="home-card-check" aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="18" height="18">
-                <path d="M5 13l4 4L19 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
-              </svg>
-            </span>
-            <h3 class="home-card-hook">The number you bank</h3>
-            <p class="home-card-land">
-              See where your figures stand up and where a buyer’s solicitor might pick — so you tidy
-              it before it costs you. The number you shake on becomes the number you bank.
-            </p>
-          </article>
-          <article class="home-card home-card--payoff">
-            <span class="home-card-check" aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="18" height="18">
-                <path d="M5 13l4 4L19 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
-              </svg>
-            </span>
-            <h3 class="home-card-hook">Sell from strength</h3>
-            <p class="home-card-land">
-              Know your position early and you choose your moment — exiting on your timeline instead
-              of being pushed into a weak, forced sale when circumstances run out of road.
-            </p>
-          </article>
-        </div>
-      </section>
 
-      <!-- ===================== HOW THE REPORT WORKS ===================== -->
-      <section class="home-section" aria-labelledby="howHeading">
-        <div class="home-section-head">
-          <p class="home-section-kicker">How it works</p>
-          <h2 class="home-section-title" id="howHeading">Your benchmark in three steps</h2>
-          <p class="home-section-lede">
-            No prompts to write, no jargon. Just choose from the dropdowns and enter your own figures.
-          </p>
-        </div>
-        <ol class="home-method">
-          <li class="home-method-item">
-            <span class="home-method-num" aria-hidden="true">1</span>
-            <div class="home-method-text">
-              <strong>Pick your location and size</strong>
-              <span>Choose your area and number of surgeries. We build a like-for-like peer group around you.</span>
+        <ol class="hp-ruled hp-ruled--payoff">
+          <li class="hp-ruled-item">
+            <span class="hp-ruled-mark" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="16" height="16">
+                <path d="M5 13l4 4L19 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </span>
+            <div class="hp-ruled-text">
+              <h3>Sell with knowledge</h3>
+              <p>
+                Judge any offer — corporate, neighbour or friend — knowing exactly where it ranks and
+                what the terms really cost. No more saying yes because you liked the person across the
+                table.
+              </p>
             </div>
           </li>
-          <li class="home-method-item">
-            <span class="home-method-num" aria-hidden="true">2</span>
-            <div class="home-method-text">
-              <strong>Enter your own figures</strong>
-              <span>Tick the elements you want — turnover, rent, associate costs and more — and add your numbers.</span>
+          <li class="hp-ruled-item">
+            <span class="hp-ruled-mark" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="16" height="16">
+                <path d="M5 13l4 4L19 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </span>
+            <div class="hp-ruled-text">
+              <h3>The number you bank</h3>
+              <p>
+                See where your figures stand up and where a buyer’s solicitor might pick — so you tidy
+                it before it costs you. The number you shake on becomes the number you bank.
+              </p>
             </div>
           </li>
-          <li class="home-method-item">
-            <span class="home-method-num" aria-hidden="true">3</span>
-            <div class="home-method-text">
-              <strong>See where you sit</strong>
-              <span>Get an instant read of how you compare to national and local medians, in plain figures.</span>
+          <li class="hp-ruled-item">
+            <span class="hp-ruled-mark" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="16" height="16">
+                <path d="M5 13l4 4L19 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </span>
+            <div class="hp-ruled-text">
+              <h3>Sell from strength</h3>
+              <p>
+                Know your position early and you choose your moment — exiting on your timeline instead
+                of being pushed into a weak, forced sale when circumstances run out of road.
+              </p>
             </div>
           </li>
         </ol>
-        <p class="home-method-trust">
+      </section>
+
+      <!-- ===================== HOW IT WORKS ===================== -->
+      <section class="hp-section" id="how" aria-labelledby="howHeading">
+        <div class="hp-shead">
+          <span class="hp-shead-idx">04</span>
+          <div class="hp-shead-body">
+            <p class="eyebrow">How it works</p>
+            <h2 class="hp-shead-title" id="howHeading">Your benchmark in three steps</h2>
+            <p class="hp-shead-lede">
+              No prompts to write, no jargon. Just choose from the dropdowns and enter your own figures.
+            </p>
+          </div>
+        </div>
+
+        <ol class="hp-steps">
+          <li class="hp-step">
+            <span class="hp-step-num" aria-hidden="true">1</span>
+            <div class="hp-step-text">
+              <h3>Pick your location and size</h3>
+              <p>Choose your area and number of surgeries. We build a like-for-like peer group around you.</p>
+            </div>
+          </li>
+          <li class="hp-step">
+            <span class="hp-step-num" aria-hidden="true">2</span>
+            <div class="hp-step-text">
+              <h3>Enter your own figures</h3>
+              <p>Tick the elements you want — turnover, rent, associate costs and more — and add your numbers.</p>
+            </div>
+          </li>
+          <li class="hp-step">
+            <span class="hp-step-num" aria-hidden="true">3</span>
+            <div class="hp-step-text">
+              <h3>See where you sit</h3>
+              <p>Get an instant read of how you compare to national and local medians, in plain figures.</p>
+            </div>
+          </li>
+        </ol>
+        <p class="hp-trust">
           Built on Frank Taylor &amp; Associates’ open-market approach and 7,900+ buyer universe —
           honest figures, full transparency, and options before you commit to a decision.
         </p>
       </section>
 
       <!-- ===================== FINAL CTA ===================== -->
-      <section class="home-cta" aria-labelledby="chooseHeading">
-        <div class="home-cta-inner">
-          <p class="home-cta-kicker">Start now</p>
-          <h2 class="home-cta-title" id="chooseHeading">Find out where you stand</h2>
-          <p class="home-cta-lede">
-            It takes minutes. Enter your figures, pick your peers, and see how you compare — before
-            anyone else sets the frame for the conversation.
-          </p>
-          <div class="home-cta-actions">
-            <a class="btn btn-primary home-hero-btn" href="/report">Unlock your insights</a>
-          </div>
-          <p class="home-cta-note">
-            Advisers &amp; team: <a class="home-cta-link" href="/ddv">open the internal data assistant →</a>
-          </p>
+      <section class="hp-cta" aria-labelledby="chooseHeading">
+        <p class="eyebrow eyebrow--onink">Start now</p>
+        <h2 class="hp-cta-title" id="chooseHeading">Find out where you stand</h2>
+        <p class="hp-cta-lede">
+          It takes minutes. Enter your figures, pick your peers, and see how you compare — before
+          anyone else sets the frame for the conversation.
+        </p>
+        <div class="hp-cta-actions">
+          <a class="btn btn-gold hp-cta-btn" href="/report">Unlock your insights</a>
         </div>
+        <p class="hp-cta-note">
+          Advisers &amp; team: <a class="hp-cta-link" href="/ddv">open the internal data assistant →</a>
+        </p>
       </section>
 
-      <footer class="home-footer">
-        <p>Frank Taylor &amp; Associates · Independent dental practice owners across England &amp; Wales</p>
-        <p class="home-footer-tag">Be brave. Have fun. Make a dent.</p>
+      <footer class="hp-footer">
+        <div class="hp-footer-inner">
+          <div class="brand">
+            <div class="logo" aria-hidden="true">FTA</div>
+            <div class="brand-text">
+              <span class="brand-name">Dental Data Vault</span>
+              <span class="brand-sub">by Frank Taylor &amp; Associates</span>
+            </div>
+          </div>
+          <div class="hp-footer-text">
+            <p>Independent dental practice owners across England &amp; Wales.</p>
+            <p class="hp-footer-tag">Be brave. Have fun. Make a dent.</p>
+          </div>
+        </div>
       </footer>
     </main>
   </body>
