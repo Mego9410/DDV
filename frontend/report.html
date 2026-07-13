@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#FFFFFF" />
-    <title>Practice Benchmark Report — Frank Taylor &amp; Associates</title>
+    <title>Practice Benchmark Report — Dental Data Vault</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -15,66 +15,109 @@
     <link rel="stylesheet" href="./report.css" />
   </head>
   <body class="report-page">
-    <div class="bg" aria-hidden="true"></div>
+    <div class="bg report-bg" aria-hidden="true"></div>
 
-    <main class="report-shell">
-      <header class="topbar">
+    <header class="report-nav">
+      <div class="report-nav-inner">
         <div class="brand">
           <div class="logo" aria-hidden="true">FTA</div>
           <div class="brand-text">
-            <span class="brand-name">Frank Taylor &amp; Associates</span>
+            <span class="brand-name">Dental Data Vault</span>
             <span class="brand-sub">Practice benchmark report</span>
           </div>
         </div>
-        <nav class="actions">
-          <a class="btn btn-ghost" href="/">Home</a>
+        <nav class="report-nav-actions" aria-label="Primary">
+          <a class="report-nav-link" href="/">Home</a>
         </nav>
-      </header>
+      </div>
+    </header>
 
+    <main class="report-shell">
       <section class="report-intro">
-        <p class="report-kicker">Client report</p>
-        <h1 class="report-title">Where does your practice sit?</h1>
+        <span class="report-badge">
+          <span class="report-badge-dot" aria-hidden="true"></span>
+          Compare your figures · Not a valuation
+        </span>
+        <h1 class="report-title">See where your practice sits</h1>
         <p class="report-lede">
-          Choose your location and surgery count, tick the figures you want to compare, and enter
-          your own amounts. We’ll show how you compare to national and local peer medians — no chat,
-          just structured results.
+          Pick your location and surgery count, enter your own figures, and get an instant read against
+          national and local peer medians.
         </p>
+        <ol class="report-steps-hint" aria-label="How it works">
+          <li><span>1</span> Location &amp; size</li>
+          <li><span>2</span> Your figures</li>
+          <li><span>3</span> Your report</li>
+        </ol>
       </section>
 
-      <form class="report-form" id="reportForm" novalidate>
-        <div class="report-form-grid">
-          <label class="field">
-            <span class="field-label">Location</span>
-            <select class="field-control" id="locationSelect" name="location" required>
-              <option value="">Loading locations…</option>
-            </select>
-          </label>
+      <div class="report-panel">
+        <form class="report-form" id="reportForm" novalidate>
+          <div class="report-form-section">
+            <div class="report-form-section-head">
+              <span class="report-step-num">1</span>
+              <div>
+                <h2 class="report-form-section-title">Your practice profile</h2>
+                <p class="report-form-section-hint">We use this to build your peer group.</p>
+              </div>
+            </div>
+            <div class="report-form-grid">
+              <label class="field">
+                <span class="field-label">Location</span>
+                <select class="field-control" id="locationSelect" name="location" required>
+                  <option value="">Loading locations…</option>
+                </select>
+              </label>
+              <label class="field">
+                <span class="field-label">Number of surgeries</span>
+                <select class="field-control" id="surgerySelect" name="surgeryCount" required>
+                  <option value="">Select…</option>
+                </select>
+              </label>
+            </div>
+          </div>
 
-          <label class="field">
-            <span class="field-label">Number of surgeries</span>
-            <select class="field-control" id="surgerySelect" name="surgeryCount" required>
-              <option value="">Select…</option>
-            </select>
-          </label>
-        </div>
+          <div class="report-form-section">
+            <div class="report-form-section-head">
+              <span class="report-step-num">2</span>
+              <div>
+                <h2 class="report-form-section-title">Figures to compare</h2>
+                <p class="report-form-section-hint">Tick each line, then enter your amount in £.</p>
+              </div>
+            </div>
+            <fieldset class="metric-fieldset">
+              <legend class="sr-only">Elements to compare</legend>
+              <div class="metric-groups" id="metricGroups"></div>
+            </fieldset>
+          </div>
 
-        <fieldset class="metric-fieldset">
-          <legend class="field-label">Elements to compare</legend>
-          <p class="field-hint">Tick each item, then enter your practice’s figure in £.</p>
-
-          <div class="metric-groups" id="metricGroups"></div>
-        </fieldset>
-
-        <div class="report-form-actions">
-          <p class="form-error" id="formError" hidden></p>
-          <button class="btn btn-primary" id="btnGenerate" type="submit">Generate report</button>
-        </div>
-      </form>
+          <div class="report-form-actions">
+            <p class="form-error" id="formError" hidden role="alert"></p>
+            <button class="btn btn-primary report-submit" id="btnGenerate" type="submit">
+              <span class="report-submit-text">Generate report</span>
+              <span class="report-submit-spinner" hidden aria-hidden="true"></span>
+            </button>
+          </div>
+        </form>
+      </div>
 
       <section class="report-output" id="reportOutput" hidden aria-live="polite">
         <div class="report-output-header">
-          <h2 class="report-output-title">Your benchmark report</h2>
-          <p class="report-cohort" id="reportCohort"></p>
+          <div class="report-output-head-top">
+            <span class="report-step-num report-step-num--done">3</span>
+            <div>
+              <h2 class="report-output-title">Your benchmark report</h2>
+              <p class="report-output-sub">Medians from Frank Taylor &amp; Associates’ practice dataset.</p>
+            </div>
+          </div>
+          <div class="report-cohort-card" id="reportCohortCard">
+            <span class="report-cohort-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="18" height="18">
+                <path d="M12 21s7-4.5 7-11a7 7 0 1 0-14 0c0 6.5 7 11 7 11Z" fill="none" stroke="currentColor" stroke-width="2" />
+                <circle cx="12" cy="10" r="2.5" fill="none" stroke="currentColor" stroke-width="2" />
+              </svg>
+            </span>
+            <p class="report-cohort" id="reportCohort"></p>
+          </div>
           <p class="report-footnote" id="reportFootnote" hidden></p>
         </div>
         <div class="report-rows" id="reportRows"></div>
@@ -82,9 +125,8 @@
 
       <footer class="report-footer">
         <p>
-          Figures are medians from Frank Taylor &amp; Associates’ practice dataset. Individual
-          practices are never shown. Local peer groups may be widened by surgery count or distance
-          when the exact match is too small.
+          Figures are peer medians, not valuations. Individual practices are never shown. Local peer
+          groups may be widened by surgery count or distance when the exact match is too small.
         </p>
       </footer>
     </main>

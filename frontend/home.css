@@ -343,6 +343,67 @@ body.home-page {
   transform: translateX(4px);
 }
 
+/* ---------- Stats strip ---------- */
+.home-stats {
+  margin-top: clamp(40px, 6vw, 64px);
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  padding: 28px 24px;
+  border: 1px solid var(--gold-tint-2);
+  border-radius: var(--r-xl);
+  background: linear-gradient(180deg, var(--surface), #fffdf6);
+  box-shadow: var(--shadow-sm);
+}
+
+@media (max-width: 640px) {
+  .home-stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px 16px;
+  }
+}
+
+.home-stat {
+  text-align: center;
+  position: relative;
+}
+
+.home-stat + .home-stat::before {
+  content: "";
+  position: absolute;
+  left: -8px;
+  top: 12%;
+  height: 76%;
+  width: 1px;
+  background: var(--border);
+}
+
+@media (max-width: 640px) {
+  .home-stat + .home-stat::before {
+    display: none;
+  }
+}
+
+.home-stat-num {
+  display: block;
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: clamp(32px, 5vw, 46px);
+  line-height: 1;
+  color: var(--gold-deep);
+  letter-spacing: -0.01em;
+}
+
+.home-stat-label {
+  display: block;
+  margin-top: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+}
+
 /* ---------- Generic section ---------- */
 .home-section {
   padding: clamp(56px, 8vw, 88px) 0 0;
@@ -450,6 +511,69 @@ body.home-page {
   margin: 0;
   font-size: 14.5px;
   line-height: 1.62;
+  color: var(--fg-2);
+}
+
+/* ---------- Feature grid (value props) ---------- */
+.home-features {
+  margin-top: 40px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 960px) {
+  .home-features {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 520px) {
+  .home-features {
+    grid-template-columns: 1fr;
+    max-width: 30rem;
+    margin-inline: auto;
+  }
+}
+
+.home-feature {
+  padding: 24px 22px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  transition: border-color var(--dur) var(--ease), transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+
+.home-feature:hover {
+  border-color: var(--gold);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+.home-feature-icon {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: var(--r-md);
+  color: var(--gold-deep);
+  background: var(--gold-tint);
+  border: 1px solid var(--gold-tint-2);
+  margin-bottom: 16px;
+}
+
+.home-feature-title {
+  margin: 0 0 8px;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: var(--tracking-snug);
+  color: var(--fg-1);
+}
+
+.home-feature-copy {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
   color: var(--fg-2);
 }
 
