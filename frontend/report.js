@@ -1,4 +1,7 @@
 (() => {
+  // Temporarily off while testing the form. Flip to true to restore magic-link gate.
+  const EMAIL_GATE_ENABLED = false;
+
   const locationInput = document.getElementById("locationSelect");
   const surgeryInput = document.getElementById("surgerySelect");
   const locationTrigger = document.getElementById("locationTrigger");
@@ -11,12 +14,29 @@
   const reportForm = document.getElementById("reportForm");
   const formError = document.getElementById("formError");
   const btnGenerate = document.getElementById("btnGenerate");
+  const formUnlockedHint = document.getElementById("formUnlockedHint");
+  const reportGate = document.getElementById("reportGate");
+  const gateForm = document.getElementById("gateForm");
+  const gateName = document.getElementById("gateName");
+  const gateEmail = document.getElementById("gateEmail");
+  const gateError = document.getElementById("gateError");
+  const gateBack = document.getElementById("gateBack");
+  const gateSubmit = document.getElementById("gateSubmit");
+  const reportSent = document.getElementById("reportSent");
+  const reportSentCopy = document.getElementById("reportSentCopy");
   const reportOutput = document.getElementById("reportOutput");
   const reportCohort = document.getElementById("reportCohort");
   const reportRows = document.getElementById("reportRows");
+  const formShell = reportForm?.closest(".report-form-shell") || reportForm?.parentElement;
+
+  const UNLOCK_TOKEN_KEY = "ddv_report_unlock_token";
 
   let locationOptions = [];
   let openDropdown = null;
+  let pendingBenchmark = null;
+  let unlockToken = "";
+  let optionsLoaded = false;
+  let hasGenerated = false;
 
   const GROUP_LABELS = {
     income: "Income & outcomes",
@@ -399,10 +419,20 @@
     return metrics;
   }
 
+  function formatCohortLocation(cohort) {
+    const place = String(cohort?.location || "").trim();
+    if (!place) return "Local peer group for your selected location";
+    if (cohort?.mode === "radius" && Number.isFinite(Number(cohort.radius_miles))) {
+      return `Local peer group: within ${Number(cohort.radius_miles)} miles of ${place}`;
+    }
+    return `Local peer group: ${place}`;
+  }
+
   function renderReport(data) {
     const cohort = data?.cohort || {};
-    reportCohort.textContent =
-      cohort.label || "Compared with similar-size practices near you.";
+    // v2 backend supplies a ready cohort.label; fall back to the
+    // location-based label for the pre-v2 response shape.
+    reportCohort.textContent = cohort.label || formatCohortLocation(cohort);
 
     reportRows.innerHTML = "";
     const metrics = Array.isArray(data?.metrics) ? data.metrics : [];
@@ -436,12 +466,207 @@
     reportOutput.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
-  function setGenerating(on) {
+  function setUnlockedUi(on) {
+    if (formUnlockedHint) formUnlockedHint.hidden = !on;
+    const text = btnGenerate?.querySelector(".report-submit-text");
+    if (text) {
+      if (!EMAIL_GATE_ENABLED) text.textContent = on ? "Update report" : "Generate report";
+      else text.textContent = on ? "Update report" : "Continue";
+    }
+  }
+
+  function idleSubmitLabel() {
+    if (!EMAIL_GATE_ENABLED) return hasGenerated ? "Update report" : "Generate report";
+    return unlockToken ? "Update report" : "Continue";
+  }
+
+  function setUpdating(on) {
+    if (!btnGenerate) return;
     btnGenerate.disabled = on;
     const text = btnGenerate.querySelector(".report-submit-text");
     const spinner = btnGenerate.querySelector(".report-submit-spinner");
-    if (text) text.textContent = on ? "Generating…" : "Generate report";
+    if (text) text.textContent = on ? (hasGenerated || unlockToken ? "Updating…" : "Generating…") : idleSubmitLabel();
     if (spinner) spinner.hidden = !on;
+  }
+
+  function persistUnlockToken(token) {
+    unlockToken = String(token || "").trim();
+    try {
+      if (unlockToken) sessionStorage.setItem(UNLOCK_TOKEN_KEY, unlockToken);
+      else sessionStorage.removeItem(UNLOCK_TOKEN_KEY);
+    } catch {
+      /* ignore */
+    }
+    setUnlockedUi(Boolean(unlockToken));
+  }
+
+  function readStoredUnlockToken() {
+    try {
+      return sessionStorage.getItem(UNLOCK_TOKEN_KEY) || "";
+    } catch {
+      return "";
+    }
+  }
+
+  function applyFormValues(inputs = {}) {
+    const location = String(inputs.location || "").trim();
+    if (location) {
+      const locDd = locationTrigger.closest(".dd");
+      setDdValue(locDd, location, location);
+    }
+
+    const surgeryCount = Number(inputs.surgeryCount);
+    if (Number.isInteger(surgeryCount) && surgeryCount >= 1) {
+      const surgeryDd = surgeryTrigger.closest(".dd");
+      const opt = [...(surgeryList?.querySelectorAll(".dd-option") || [])].find(
+        (el) => el.dataset.value === String(surgeryCount)
+      );
+      const label = opt?.textContent?.trim() || String(surgeryCount);
+      setDdValue(surgeryDd, String(surgeryCount), label);
+    }
+
+    const metrics = Array.isArray(inputs.metrics) ? inputs.metrics : [];
+    const byId = Object.fromEntries(metrics.map((m) => [m.id, m.value]));
+    metricGroups.querySelectorAll(".metric-row").forEach((row) => {
+      const checkbox = row.querySelector('[data-role="metric-toggle"]');
+      const valueInput = row.querySelector('[data-role="metric-value"]');
+      if (!checkbox || !valueInput) return;
+      const value = byId[checkbox.value];
+      if (value == null || !Number.isFinite(Number(value))) {
+        checkbox.checked = false;
+        valueInput.disabled = true;
+        valueInput.value = "";
+        row.classList.remove("is-active");
+        return;
+      }
+      checkbox.checked = true;
+      valueInput.disabled = false;
+      valueInput.value = String(value);
+      row.classList.add("is-active");
+    });
+  }
+
+  function collectFormPayload() {
+    const location = locationInput.value.trim();
+    const surgeryCount = Number(surgeryInput.value);
+    if (!location) {
+      const err = new Error("Choose a location.");
+      err.field = locationTrigger;
+      err.openDd = locationTrigger.closest(".dd");
+      throw err;
+    }
+    if (!Number.isInteger(surgeryCount) || surgeryCount < 1) {
+      const err = new Error("Choose number of surgeries.");
+      err.field = surgeryTrigger;
+      err.openDd = surgeryTrigger.closest(".dd");
+      throw err;
+    }
+    const metrics = collectMetrics();
+    if (!metrics.length) {
+      throw new Error("Tick at least one element and enter your figure.");
+    }
+    return { location, surgeryCount, metrics };
+  }
+
+  function setGateSending(on) {
+    gateSubmit.disabled = on;
+    gateBack.disabled = on;
+    const text = gateSubmit.querySelector(".gate-submit-text");
+    const spinner = gateSubmit.querySelector(".report-submit-spinner");
+    if (text) text.textContent = on ? "Sending…" : "Email me the link";
+    if (spinner) spinner.hidden = !on;
+  }
+
+  function setGateError(msg) {
+    if (!msg) {
+      gateError.hidden = true;
+      gateError.textContent = "";
+      return;
+    }
+    gateError.hidden = false;
+    gateError.textContent = msg;
+  }
+
+  function showView({ form = false, gate = false, sent = false, output = false } = {}) {
+    if (formShell) formShell.hidden = !form;
+    reportGate.hidden = !gate;
+    reportSent.hidden = !sent;
+    reportOutput.hidden = !output;
+  }
+
+  function getUnlockTokenFromUrl() {
+    try {
+      return new URLSearchParams(window.location.search).get("token") || "";
+    } catch {
+      return "";
+    }
+  }
+
+  function clearTokenFromUrl() {
+    try {
+      const url = new URL(window.location.href);
+      if (!url.searchParams.has("token")) return;
+      url.searchParams.delete("token");
+      window.history.replaceState({}, "", url.pathname + url.search + url.hash);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  async function runDirectBenchmark(payload) {
+    const resp = await fetch("/api/report/benchmark", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok) {
+      throw new Error(data.detail || "Could not generate report");
+    }
+    hasGenerated = true;
+    setUnlockedUi(true);
+    showView({ form: true, output: true });
+    renderReport(data);
+  }
+
+  async function unlockWithToken(token) {
+    showView({});
+    setError("");
+    const resp = await fetch("/api/report/unlock", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token }),
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok) {
+      throw new Error(data.detail || "Could not unlock report");
+    }
+    persistUnlockToken(token);
+    clearTokenFromUrl();
+    await ensureOptionsLoaded();
+    applyFormValues(data.inputs || {});
+    showView({ form: true, output: true });
+    renderReport(data.report || {});
+  }
+
+  async function recalculateReport(payload) {
+    const resp = await fetch("/api/report/recalculate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: unlockToken, ...payload }),
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok) {
+      throw new Error(data.detail || "Could not update report");
+    }
+    applyFormValues(data.inputs || payload);
+    showView({ form: true, output: true });
+    renderReport(data.report || {});
+  }
+
+  async function ensureOptionsLoaded() {
+    if (optionsLoaded) return;
+    await loadOptions();
   }
 
   async function loadOptions() {
@@ -468,70 +693,158 @@
     surgeryInput.value = "";
 
     renderMetricCatalog(data.metrics || []);
+    optionsLoaded = true;
   }
 
   reportForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     setError("");
 
-    const location = locationInput.value.trim();
-    const surgeryCount = Number(surgeryInput.value);
-    if (!location) {
-      setError("Choose a location.");
-      locationTrigger.focus();
-      openDd(locationTrigger.closest(".dd"));
-      return;
-    }
-    if (!Number.isInteger(surgeryCount) || surgeryCount < 1) {
-      setError("Choose number of surgeries.");
-      surgeryTrigger.focus();
-      openDd(surgeryTrigger.closest(".dd"));
-      return;
-    }
-
-    let metrics;
+    let payload;
     try {
-      metrics = collectMetrics();
+      payload = collectFormPayload();
     } catch (err) {
       setError(err.message || "Enter your figures for each selected element.");
-      err.field?.focus();
+      err.field?.focus?.();
+      if (err.openDd) openDd(err.openDd);
       return;
     }
 
-    if (!metrics.length) {
-      setError("Tick at least one element and enter your figure.");
+    // Testing mode: skip email gate and generate immediately.
+    if (!EMAIL_GATE_ENABLED) {
+      setUpdating(true);
+      try {
+        await runDirectBenchmark(payload);
+      } catch (err) {
+        setError(String(err.message || err));
+      } finally {
+        setUpdating(false);
+      }
       return;
     }
 
-    setGenerating(true);
+    if (unlockToken) {
+      setUpdating(true);
+      try {
+        await recalculateReport(payload);
+      } catch (err) {
+        setError(String(err.message || err));
+      } finally {
+        setUpdating(false);
+      }
+      return;
+    }
 
+    pendingBenchmark = payload;
+    setGateError("");
+    showView({ gate: true });
+    reportGate.scrollIntoView({ behavior: "smooth", block: "start" });
+    gateName.focus();
+  });
+
+  gateBack.addEventListener("click", () => {
+    setGateError("");
+    showView({ form: true, output: Boolean(unlockToken) && !reportOutput.hidden });
+    reportForm.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+
+  gateForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    setGateError("");
+
+    if (!pendingBenchmark) {
+      setGateError("Please complete the report form first.");
+      showView({ form: true });
+      return;
+    }
+
+    const name = gateName.value.trim();
+    const email = gateEmail.value.trim();
+    if (!name) {
+      setGateError("Please enter your name.");
+      gateName.focus();
+      return;
+    }
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setGateError("Please enter a valid email address.");
+      gateEmail.focus();
+      return;
+    }
+
+    setGateSending(true);
     try {
-      const resp = await fetch("/api/report/benchmark", {
+      const resp = await fetch("/api/report/request-link", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ location, surgeryCount, metrics }),
+        body: JSON.stringify({
+          name,
+          email,
+          ...pendingBenchmark,
+        }),
       });
       const data = await resp.json().catch(() => ({}));
       if (!resp.ok) {
-        throw new Error(data.detail || "Could not generate report");
+        throw new Error(data.detail || "Could not send unlock email");
       }
-      renderReport(data);
+      const masked = data.emailMasked || email;
+      reportSentCopy.textContent = `We’ve sent a private unlock link to ${masked}. Open it to view your benchmark report.`;
+      showView({ sent: true });
+      reportSent.scrollIntoView({ behavior: "smooth", block: "start" });
     } catch (err) {
-      setError(String(err.message || err));
-      reportOutput.hidden = true;
+      setGateError(String(err.message || err));
     } finally {
-      setGenerating(false);
+      setGateSending(false);
     }
   });
 
-  loadOptions().catch((err) => {
-    setError(String(err.message || err));
-    const text = locationTrigger.querySelector(".dd-trigger-text");
-    if (text) {
-      text.textContent = "Unable to load locations";
-      text.classList.add("dd-placeholder");
+  async function boot() {
+    if (!EMAIL_GATE_ENABLED) {
+      // Clear any leftover unlock session from earlier testing.
+      persistUnlockToken("");
+      showView({ form: true });
+      setUnlockedUi(false);
+      try {
+        await loadOptions();
+      } catch (err) {
+        setError(String(err.message || err));
+        const text = locationTrigger.querySelector(".dd-trigger-text");
+        if (text) {
+          text.textContent = "Unable to load locations";
+          text.classList.add("dd-placeholder");
+        }
+        locationTrigger.disabled = true;
+        surgeryTrigger.disabled = true;
+      }
+      return;
     }
-    locationTrigger.disabled = true;
-    surgeryTrigger.disabled = true;
-  });
+
+    const token = getUnlockTokenFromUrl() || readStoredUnlockToken();
+    if (token) {
+      try {
+        await unlockWithToken(token);
+        return;
+      } catch (err) {
+        persistUnlockToken("");
+        showView({ form: true });
+        setError(String(err.message || err));
+      }
+    }
+
+    showView({ form: true });
+    setUnlockedUi(false);
+    try {
+      await loadOptions();
+    } catch (err) {
+      setError(String(err.message || err));
+      const text = locationTrigger.querySelector(".dd-trigger-text");
+      if (text) {
+        text.textContent = "Unable to load locations";
+        text.classList.add("dd-placeholder");
+      }
+      locationTrigger.disabled = true;
+      surgeryTrigger.disabled = true;
+    }
+  }
+
+  boot();
 })();

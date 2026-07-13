@@ -1,4 +1,5 @@
-const { callRpc } = require("../_lib/supabase");
+const { callRpc, patchRows } = require("../_lib/supabase");
+const { requireValidLead } = require("./lead");
 const {
   setCors,
   geocodePlaceToLatLng,
@@ -8,11 +9,6 @@ const {
   enrichMetrics,
 } = require("./_lib");
 
-/**
- * Direct benchmark for form testing.
- * Email gate is temporarily disabled — re-enable by pointing clients at
- * request-link / unlock and returning 410 from this handler again.
- */
 module.exports = async function handler(req, res) {
   setCors(res);
   if (req.method === "OPTIONS") return res.status(204).end();
@@ -21,6 +17,8 @@ module.exports = async function handler(req, res) {
   try {
     checkRateLimit(req);
     const body = parseBody(req);
+    const token = String(body?.token ?? "").trim();
+    const row = await requireValidLead(token);
     const { location, surgeryCount, metrics } = validateBenchmarkBody(body);
 
     const center = await geocodePlaceToLatLng(location);
@@ -36,7 +34,26 @@ module.exports = async function handler(req, res) {
 
     const raw = await callRpc("ddv_client_benchmark", { payload });
     const report = enrichMetrics(raw || {});
-    return res.status(200).json(report);
+
+    const now = new Date().toISOString();
+    await patchRows(
+      "report_leads",
+      { id: `eq.${row.id}` },
+      {
+        location,
+        surgery_count: surgeryCount,
+        report_json: report,
+        unlocked_at: row.unlocked_at || now,
+        verified_at: row.verified_at || now,
+      }
+    );
+
+    return res.status(200).json({
+      ok: true,
+      name: row.name,
+      report,
+      inputs: { location, surgeryCount, metrics },
+    });
   } catch (e) {
     const status = e?.statusCode || 500;
     return res.status(status).json({ detail: String(e?.message || e) });
