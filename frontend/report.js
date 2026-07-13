@@ -1,4 +1,7 @@
 (() => {
+  // Temporarily off while testing the form. Flip to true to restore magic-link gate.
+  const EMAIL_GATE_ENABLED = false;
+
   const locationInput = document.getElementById("locationSelect");
   const surgeryInput = document.getElementById("surgerySelect");
   const locationTrigger = document.getElementById("locationTrigger");
@@ -33,6 +36,7 @@
   let pendingBenchmark = null;
   let unlockToken = "";
   let optionsLoaded = false;
+  let hasGenerated = false;
 
   const GROUP_LABELS = {
     income: "Income & outcomes",
@@ -425,7 +429,15 @@
   function setUnlockedUi(on) {
     if (formUnlockedHint) formUnlockedHint.hidden = !on;
     const text = btnGenerate?.querySelector(".report-submit-text");
-    if (text) text.textContent = on ? "Update report" : "Continue";
+    if (text) {
+      if (!EMAIL_GATE_ENABLED) text.textContent = on ? "Update report" : "Generate report";
+      else text.textContent = on ? "Update report" : "Continue";
+    }
+  }
+
+  function idleSubmitLabel() {
+    if (!EMAIL_GATE_ENABLED) return hasGenerated ? "Update report" : "Generate report";
+    return unlockToken ? "Update report" : "Continue";
   }
 
   function setUpdating(on) {
@@ -433,7 +445,7 @@
     btnGenerate.disabled = on;
     const text = btnGenerate.querySelector(".report-submit-text");
     const spinner = btnGenerate.querySelector(".report-submit-spinner");
-    if (text) text.textContent = on ? "Updating…" : unlockToken ? "Update report" : "Continue";
+    if (text) text.textContent = on ? (hasGenerated || unlockToken ? "Updating…" : "Generating…") : idleSubmitLabel();
     if (spinner) spinner.hidden = !on;
   }
 
@@ -561,6 +573,22 @@
     }
   }
 
+  async function runDirectBenchmark(payload) {
+    const resp = await fetch("/api/report/benchmark", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok) {
+      throw new Error(data.detail || "Could not generate report");
+    }
+    hasGenerated = true;
+    setUnlockedUi(true);
+    showView({ form: true, output: true });
+    renderReport(data);
+  }
+
   async function unlockWithToken(token) {
     showView({});
     setError("");
@@ -642,6 +670,19 @@
       return;
     }
 
+    // Testing mode: skip email gate and generate immediately.
+    if (!EMAIL_GATE_ENABLED) {
+      setUpdating(true);
+      try {
+        await runDirectBenchmark(payload);
+      } catch (err) {
+        setError(String(err.message || err));
+      } finally {
+        setUpdating(false);
+      }
+      return;
+    }
+
     if (unlockToken) {
       setUpdating(true);
       try {
@@ -717,6 +758,26 @@
   });
 
   async function boot() {
+    if (!EMAIL_GATE_ENABLED) {
+      // Clear any leftover unlock session from earlier testing.
+      persistUnlockToken("");
+      showView({ form: true });
+      setUnlockedUi(false);
+      try {
+        await loadOptions();
+      } catch (err) {
+        setError(String(err.message || err));
+        const text = locationTrigger.querySelector(".dd-trigger-text");
+        if (text) {
+          text.textContent = "Unable to load locations";
+          text.classList.add("dd-placeholder");
+        }
+        locationTrigger.disabled = true;
+        surgeryTrigger.disabled = true;
+      }
+      return;
+    }
+
     const token = getUnlockTokenFromUrl() || readStoredUnlockToken();
     if (token) {
       try {
