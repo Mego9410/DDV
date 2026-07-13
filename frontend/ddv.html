@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#FFFFFF" />
+    <title>DDV — Ask your data</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Lora:ital,wght@0,500;0,600;0,700;1,600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="bg" aria-hidden="true"></div>
+
+    <main class="shell">
+      <header class="topbar">
+        <div class="brand">
+          <div class="logo" aria-hidden="true">DDV</div>
+          <div class="brand-text">
+            <span class="brand-name">Dental Data Vault</span>
+            <span class="brand-sub">Internal data assistant</span>
+          </div>
+        </div>
+        <nav class="actions">
+          <a class="btn btn-ghost" href="/">Home</a>
+          <button class="btn btn-ghost" id="btnLogout" type="button" hidden>Log out</button>
+        </nav>
+      </header>
+
+      <section class="hero" id="hero">
+        <div class="hero-kicker">Frank Taylor &amp; Associates</div>
+        <h1 class="hero-title">Ask anything about your<br />dental practice data</h1>
+        <div class="hero-subtitle">
+          A private analyst for the DDV dataset. Ask in plain English and get answers drawn from the
+          full database.
+        </div>
+
+        <div class="composer-card" id="composerCard">
+          <div class="composer-top">
+            <span class="composer-hint" id="composerHint">Ask a question about the dataset</span>
+          </div>
+
+          <form class="composer" id="composerForm">
+            <button class="icon-btn" id="btnPlus" type="button" aria-label="Add" disabled>+</button>
+            <button class="icon-btn icon-btn--action" id="btnBugReport" type="button" aria-label="Report a bug" title="Report a bug">
+              <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                <path d="M8 9V7a4 4 0 0 1 8 0v2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                <rect x="7" y="9" width="10" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2" />
+                <path d="M12 13v3M5 12H3M21 12h-2M5 17H3M21 17h-2M5 7l2 2M19 7l-2 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+              </svg>
+            </button>
+            <input
+              class="composer-input"
+              id="composerInput"
+              type="text"
+              autocomplete="off"
+              placeholder="e.g. Which county has the most valuable practices?"
+            />
+            <button class="send-btn" id="btnSend" type="submit" aria-label="Send">
+              <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                <path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </button>
+          </form>
+        </div>
+
+        <div class="hero-examples" id="heroExamples">
+          <span class="chip">Average practice value in Kent?</span>
+          <span class="chip">Median net profit margin across the dataset</span>
+          <span class="chip">How many practices have an NHS contract?</span>
+        </div>
+      </section>
+
+      <section class="chat" id="chat" hidden>
+        <div class="chat-header">
+          <div class="chat-title">Data chat</div>
+          <div class="chat-meta" id="chatMeta">This conversation stays for this session only.</div>
+        </div>
+        <div class="chat-scroll" id="chatScroll" role="log" aria-live="polite"></div>
+        <div class="chat-composer">
+          <form class="composer composer--chat" id="chatForm">
+            <button class="icon-btn" id="btnPlusChat" type="button" aria-label="Add" disabled>+</button>
+            <button class="icon-btn icon-btn--action" id="btnBugReportChat" type="button" aria-label="Report a bug" title="Report a bug">
+              <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                <path d="M8 9V7a4 4 0 0 1 8 0v2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                <rect x="7" y="9" width="10" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2" />
+                <path d="M12 13v3M5 12H3M21 12h-2M5 17H3M21 17h-2M5 7l2 2M19 7l-2 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+              </svg>
+            </button>
+            <input
+              class="composer-input"
+              id="chatInput"
+              type="text"
+              autocomplete="off"
+              placeholder="Ask a follow-up…"
+            />
+            <button class="send-btn" id="chatSend" type="submit" aria-label="Send">
+              <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                <path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </button>
+          </form>
+          <div class="fineprint">Answers are generated from the live database. Always sense-check before acting.</div>
+        </div>
+      </section>
+    </main>
+
+    <aside class="bug-panel" id="bugPanel" hidden aria-hidden="true">
+      <div class="bug-panel-backdrop" id="bugPanelBackdrop"></div>
+      <div class="bug-panel-sheet" role="dialog" aria-labelledby="bugPanelTitle" aria-modal="true">
+        <div class="bug-panel-header">
+          <div>
+            <div class="bug-panel-kicker">Feedback</div>
+            <h2 class="bug-panel-title" id="bugPanelTitle">Report a bug</h2>
+          </div>
+          <button class="icon-btn icon-btn--action" id="bugPanelClose" type="button" aria-label="Close">
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+              <path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+            </svg>
+          </button>
+        </div>
+        <p class="bug-panel-subtitle">
+          We’ll capture this chat so we can see what went wrong. Tell us what looked incorrect or unexpected.
+        </p>
+        <div class="bug-panel-meta" id="bugPanelMeta">No messages captured yet.</div>
+        <form class="bug-panel-form" id="bugReportForm">
+          <label class="bug-panel-label" for="bugDescription">What happened?</label>
+          <textarea
+            class="bug-panel-textarea"
+            id="bugDescription"
+            rows="8"
+            maxlength="4000"
+            placeholder="e.g. The answer said Kent had 12 practices, but that doesn’t look right…"
+            required
+          ></textarea>
+          <div class="bug-panel-actions">
+            <button class="btn btn-ghost" id="bugPanelCancel" type="button">Cancel</button>
+            <button class="btn btn-primary" id="bugPanelSubmit" type="submit">Submit report</button>
+          </div>
+          <div class="bug-panel-status" id="bugPanelStatus" hidden></div>
+        </form>
+      </div>
+    </aside>
+
+    <dialog class="modal" id="passwordModal">
+      <form method="dialog" class="modal-card" id="passwordForm">
+        <div class="modal-title">Enter access password</div>
+        <div class="modal-subtitle">This app uses a single shared password. No accounts.</div>
+        <input class="modal-input" id="passwordInput" type="password" placeholder="Password" />
+        <div class="modal-actions">
+          <button class="btn btn-primary" id="passwordSubmit" value="ok">Continue</button>
+        </div>
+        <div class="modal-error" id="passwordError" hidden></div>
+      </form>
+    </dialog>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
