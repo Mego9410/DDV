@@ -610,6 +610,31 @@ body.report-page {
   color: var(--fg-3);
 }
 
+.report-output-edit-hint {
+  margin: 8px 0 0;
+  font-size: 13.5px;
+  color: var(--fg-2);
+}
+
+.report-output-edit-hint a {
+  color: var(--gold-deep);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.report-output-edit-hint a:hover {
+  color: var(--fg-1);
+}
+
+.report-form-unlocked-hint {
+  margin: 0;
+  flex: 1 1 180px;
+  font-size: 13.5px;
+  color: var(--fg-3);
+  line-height: 1.4;
+}
+
 .report-cohort-card {
   margin-top: 22px;
   display: flex;

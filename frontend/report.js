@@ -10,6 +10,8 @@
   const metricGroups = document.getElementById("metricGroups");
   const reportForm = document.getElementById("reportForm");
   const formError = document.getElementById("formError");
+  const btnGenerate = document.getElementById("btnGenerate");
+  const formUnlockedHint = document.getElementById("formUnlockedHint");
   const reportGate = document.getElementById("reportGate");
   const gateForm = document.getElementById("gateForm");
   const gateName = document.getElementById("gateName");
@@ -24,9 +26,13 @@
   const reportRows = document.getElementById("reportRows");
   const formShell = reportForm?.closest(".report-form-shell") || reportForm?.parentElement;
 
+  const UNLOCK_TOKEN_KEY = "ddv_report_unlock_token";
+
   let locationOptions = [];
   let openDropdown = null;
   let pendingBenchmark = null;
+  let unlockToken = "";
+  let optionsLoaded = false;
 
   const GROUP_LABELS = {
     income: "Income & outcomes",
@@ -416,6 +422,100 @@
     reportOutput.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
+  function setUnlockedUi(on) {
+    if (formUnlockedHint) formUnlockedHint.hidden = !on;
+    const text = btnGenerate?.querySelector(".report-submit-text");
+    if (text) text.textContent = on ? "Update report" : "Continue";
+  }
+
+  function setUpdating(on) {
+    if (!btnGenerate) return;
+    btnGenerate.disabled = on;
+    const text = btnGenerate.querySelector(".report-submit-text");
+    const spinner = btnGenerate.querySelector(".report-submit-spinner");
+    if (text) text.textContent = on ? "Updating…" : unlockToken ? "Update report" : "Continue";
+    if (spinner) spinner.hidden = !on;
+  }
+
+  function persistUnlockToken(token) {
+    unlockToken = String(token || "").trim();
+    try {
+      if (unlockToken) sessionStorage.setItem(UNLOCK_TOKEN_KEY, unlockToken);
+      else sessionStorage.removeItem(UNLOCK_TOKEN_KEY);
+    } catch {
+      /* ignore */
+    }
+    setUnlockedUi(Boolean(unlockToken));
+  }
+
+  function readStoredUnlockToken() {
+    try {
+      return sessionStorage.getItem(UNLOCK_TOKEN_KEY) || "";
+    } catch {
+      return "";
+    }
+  }
+
+  function applyFormValues(inputs = {}) {
+    const location = String(inputs.location || "").trim();
+    if (location) {
+      const locDd = locationTrigger.closest(".dd");
+      setDdValue(locDd, location, location);
+    }
+
+    const surgeryCount = Number(inputs.surgeryCount);
+    if (Number.isInteger(surgeryCount) && surgeryCount >= 1) {
+      const surgeryDd = surgeryTrigger.closest(".dd");
+      const opt = [...(surgeryList?.querySelectorAll(".dd-option") || [])].find(
+        (el) => el.dataset.value === String(surgeryCount)
+      );
+      const label = opt?.textContent?.trim() || String(surgeryCount);
+      setDdValue(surgeryDd, String(surgeryCount), label);
+    }
+
+    const metrics = Array.isArray(inputs.metrics) ? inputs.metrics : [];
+    const byId = Object.fromEntries(metrics.map((m) => [m.id, m.value]));
+    metricGroups.querySelectorAll(".metric-row").forEach((row) => {
+      const checkbox = row.querySelector('[data-role="metric-toggle"]');
+      const valueInput = row.querySelector('[data-role="metric-value"]');
+      if (!checkbox || !valueInput) return;
+      const value = byId[checkbox.value];
+      if (value == null || !Number.isFinite(Number(value))) {
+        checkbox.checked = false;
+        valueInput.disabled = true;
+        valueInput.value = "";
+        row.classList.remove("is-active");
+        return;
+      }
+      checkbox.checked = true;
+      valueInput.disabled = false;
+      valueInput.value = String(value);
+      row.classList.add("is-active");
+    });
+  }
+
+  function collectFormPayload() {
+    const location = locationInput.value.trim();
+    const surgeryCount = Number(surgeryInput.value);
+    if (!location) {
+      const err = new Error("Choose a location.");
+      err.field = locationTrigger;
+      err.openDd = locationTrigger.closest(".dd");
+      throw err;
+    }
+    if (!Number.isInteger(surgeryCount) || surgeryCount < 1) {
+      const err = new Error("Choose number of surgeries.");
+      err.field = surgeryTrigger;
+      err.openDd = surgeryTrigger.closest(".dd");
+      throw err;
+    }
+    const metrics = collectMetrics();
+    if (!metrics.length) {
+      throw new Error("Tick at least one element and enter your figure.");
+    }
+    return { location, surgeryCount, metrics };
+  }
+
   function setGateSending(on) {
     gateSubmit.disabled = on;
     gateBack.disabled = on;
@@ -473,9 +573,32 @@
     if (!resp.ok) {
       throw new Error(data.detail || "Could not unlock report");
     }
+    persistUnlockToken(token);
     clearTokenFromUrl();
-    showView({ output: true });
+    await ensureOptionsLoaded();
+    applyFormValues(data.inputs || {});
+    showView({ form: true, output: true });
     renderReport(data.report || {});
+  }
+
+  async function recalculateReport(payload) {
+    const resp = await fetch("/api/report/recalculate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: unlockToken, ...payload }),
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok) {
+      throw new Error(data.detail || "Could not update report");
+    }
+    applyFormValues(data.inputs || payload);
+    showView({ form: true, output: true });
+    renderReport(data.report || {});
+  }
+
+  async function ensureOptionsLoaded() {
+    if (optionsLoaded) return;
+    await loadOptions();
   }
 
   async function loadOptions() {
@@ -502,42 +625,36 @@
     surgeryInput.value = "";
 
     renderMetricCatalog(data.metrics || []);
+    optionsLoaded = true;
   }
 
-  reportForm.addEventListener("submit", (e) => {
+  reportForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     setError("");
 
-    const location = locationInput.value.trim();
-    const surgeryCount = Number(surgeryInput.value);
-    if (!location) {
-      setError("Choose a location.");
-      locationTrigger.focus();
-      openDd(locationTrigger.closest(".dd"));
-      return;
-    }
-    if (!Number.isInteger(surgeryCount) || surgeryCount < 1) {
-      setError("Choose number of surgeries.");
-      surgeryTrigger.focus();
-      openDd(surgeryTrigger.closest(".dd"));
-      return;
-    }
-
-    let metrics;
+    let payload;
     try {
-      metrics = collectMetrics();
+      payload = collectFormPayload();
     } catch (err) {
       setError(err.message || "Enter your figures for each selected element.");
-      err.field?.focus();
+      err.field?.focus?.();
+      if (err.openDd) openDd(err.openDd);
       return;
     }
 
-    if (!metrics.length) {
-      setError("Tick at least one element and enter your figure.");
+    if (unlockToken) {
+      setUpdating(true);
+      try {
+        await recalculateReport(payload);
+      } catch (err) {
+        setError(String(err.message || err));
+      } finally {
+        setUpdating(false);
+      }
       return;
     }
 
-    pendingBenchmark = { location, surgeryCount, metrics };
+    pendingBenchmark = payload;
     setGateError("");
     showView({ gate: true });
     reportGate.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -546,7 +663,7 @@
 
   gateBack.addEventListener("click", () => {
     setGateError("");
-    showView({ form: true });
+    showView({ form: true, output: Boolean(unlockToken) && !reportOutput.hidden });
     reportForm.scrollIntoView({ behavior: "smooth", block: "start" });
   });
 
@@ -600,18 +717,20 @@
   });
 
   async function boot() {
-    const token = getUnlockTokenFromUrl();
+    const token = getUnlockTokenFromUrl() || readStoredUnlockToken();
     if (token) {
       try {
         await unlockWithToken(token);
         return;
       } catch (err) {
+        persistUnlockToken("");
         showView({ form: true });
         setError(String(err.message || err));
       }
     }
 
     showView({ form: true });
+    setUnlockedUi(false);
     try {
       await loadOptions();
     } catch (err) {
