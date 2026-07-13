@@ -51,6 +51,35 @@
     return { text: `${abs}% lower than median`, cls: "is-below" };
   }
 
+  // Deviation meter: median is the centre baseline, your value sits left
+  // (below) or right (above). Magnitude is clamped so extreme outliers stay
+  // on-scale; the exact % is always shown in text beneath.
+  const METER_CAP = 60; // percent mapped to the edge of the track
+  function buildMeter(pct, cls) {
+    let offset = 0; // -50..50, share of the half-track
+    if (pct != null && Number.isFinite(Number(pct))) {
+      const clamped = Math.max(-METER_CAP, Math.min(METER_CAP, Number(pct)));
+      offset = (clamped / METER_CAP) * 50;
+    }
+    const you = Math.max(2, Math.min(98, 50 + offset));
+    let fill;
+    if (offset > 0.4) {
+      fill = `left:50%;width:${(you - 50).toFixed(2)}%`;
+    } else if (offset < -0.4) {
+      fill = `left:${you.toFixed(2)}%;width:${(50 - you).toFixed(2)}%`;
+    } else {
+      fill = `left:50%;width:0%`;
+    }
+    return `
+      <div class="bench-meter" role="img" aria-hidden="true">
+        <div class="bench-track">
+          <span class="bench-fill ${cls}" style="${fill}"></span>
+          <span class="bench-you ${cls}" style="left:${you.toFixed(2)}%"></span>
+        </div>
+        <div class="bench-scale"><span>Below</span><span>Median</span><span>Above</span></div>
+      </div>`;
+  }
+
   function closeAllDropdowns() {
     document.querySelectorAll(".dd.is-open").forEach((dd) => {
       dd.classList.remove("is-open");
@@ -317,8 +346,11 @@
       const natBlock = document.createElement("div");
       natBlock.className = `compare-block ${natDelta.cls}`;
       natBlock.innerHTML = `
-        <div class="compare-label">National median</div>
-        <div class="compare-median">${formatMoney(row.national?.median, row.id)}</div>
+        <div class="compare-head">
+          <span class="compare-label">National median</span>
+          <span class="compare-median">${formatMoney(row.national?.median, row.id)}</span>
+        </div>
+        ${buildMeter(row.pct_vs_national, natDelta.cls)}
         <div class="compare-delta ${natDelta.cls}">${natDelta.text}</div>
       `;
 
@@ -326,15 +358,20 @@
       if (row.local_suppressed || !row.local) {
         locBlock.className = "compare-block";
         locBlock.innerHTML = `
-          <div class="compare-label">Local peers</div>
-          <div class="compare-note">Not enough local peers with this figure to compare.</div>
+          <div class="compare-head">
+            <span class="compare-label">Local peers</span>
+          </div>
+          <p class="compare-note">Not enough local peers with this figure to compare.</p>
         `;
       } else {
         const locDelta = formatPctDelta(row.pct_vs_local);
         locBlock.className = `compare-block ${locDelta.cls}`;
         locBlock.innerHTML = `
-          <div class="compare-label">Local peer median</div>
-          <div class="compare-median">${formatMoney(row.local?.median, row.id)}</div>
+          <div class="compare-head">
+            <span class="compare-label">Local peer median</span>
+            <span class="compare-median">${formatMoney(row.local?.median, row.id)}</span>
+          </div>
+          ${buildMeter(row.pct_vs_local, locDelta.cls)}
           <div class="compare-delta ${locDelta.cls}">${locDelta.text}</div>
         `;
       }
@@ -348,10 +385,10 @@
       if (row.national_same_size?.median != null) {
         const same = document.createElement("div");
         same.className = "report-same-size";
-        same.textContent = `National same-size median: ${formatMoney(
+        same.innerHTML = `National same-size median: <strong>${formatMoney(
           row.national_same_size.median,
           row.id
-        )}`;
+        )}</strong>`;
         el.appendChild(same);
       }
 
