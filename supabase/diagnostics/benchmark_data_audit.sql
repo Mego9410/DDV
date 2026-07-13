@@ -141,8 +141,8 @@ select
   nat.median_all_sizes,
   sz.n_same_size,
   sz.median_same_size,
-  round(100.0 * (sz.median_same_size - nat.median_all_sizes)
-        / nullif(nat.median_all_sizes,0), 1) as same_size_vs_all_pct
+  round((100.0 * (sz.median_same_size - nat.median_all_sizes)
+        / nullif(nat.median_all_sizes,0))::numeric, 1) as same_size_vs_all_pct
 from params p
 cross join cols c
 cross join lateral (
