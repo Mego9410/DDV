@@ -419,18 +419,8 @@
     return metrics;
   }
 
-  function formatCohortLocation(cohort) {
-    const place = String(cohort?.location || "").trim();
-    if (cohort?.mode === "same_size") {
-      return place
-        ? `Wider peer group for practices near ${place} (expanded to national same-size)`
-        : "Wider peer group: national same-size practices";
-    }
-    if (!place) return "Local peer group for your selected location";
-    if (cohort?.mode === "radius" && Number.isFinite(Number(cohort.radius_miles))) {
-      return `Local peer group: within ${Number(cohort.radius_miles)} miles of ${place}`;
-    }
-    return `Local peer group: ${place}`;
+  function formatCohortLocation(_cohort) {
+    return "Local practices in your area";
   }
 
   function renderReport(data) {
