@@ -10,13 +10,23 @@
   const metricGroups = document.getElementById("metricGroups");
   const reportForm = document.getElementById("reportForm");
   const formError = document.getElementById("formError");
-  const btnGenerate = document.getElementById("btnGenerate");
+  const reportGate = document.getElementById("reportGate");
+  const gateForm = document.getElementById("gateForm");
+  const gateName = document.getElementById("gateName");
+  const gateEmail = document.getElementById("gateEmail");
+  const gateError = document.getElementById("gateError");
+  const gateBack = document.getElementById("gateBack");
+  const gateSubmit = document.getElementById("gateSubmit");
+  const reportSent = document.getElementById("reportSent");
+  const reportSentCopy = document.getElementById("reportSentCopy");
   const reportOutput = document.getElementById("reportOutput");
   const reportCohort = document.getElementById("reportCohort");
   const reportRows = document.getElementById("reportRows");
+  const formShell = reportForm?.closest(".report-form-shell") || reportForm?.parentElement;
 
   let locationOptions = [];
   let openDropdown = null;
+  let pendingBenchmark = null;
 
   const GROUP_LABELS = {
     income: "Income & outcomes",
@@ -311,11 +321,18 @@
     return metrics;
   }
 
+  function formatCohortLocation(cohort) {
+    const place = String(cohort?.location || "").trim();
+    if (!place) return "Local peer group for your selected location";
+    if (cohort?.mode === "radius" && Number.isFinite(Number(cohort.radius_miles))) {
+      return `Local peer group: within ${Number(cohort.radius_miles)} miles of ${place}`;
+    }
+    return `Local peer group: ${place}`;
+  }
+
   function renderReport(data) {
     const cohort = data?.cohort || {};
-    reportCohort.textContent = cohort.label
-      ? `Local peer group: ${cohort.label}`
-      : "Local peer group selected from your location and surgery count.";
+    reportCohort.textContent = formatCohortLocation(cohort);
 
     reportRows.innerHTML = "";
     const metrics = Array.isArray(data?.metrics) ? data.metrics : [];
@@ -399,12 +416,66 @@
     reportOutput.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
-  function setGenerating(on) {
-    btnGenerate.disabled = on;
-    const text = btnGenerate.querySelector(".report-submit-text");
-    const spinner = btnGenerate.querySelector(".report-submit-spinner");
-    if (text) text.textContent = on ? "Generating…" : "Generate report";
+  function setGateSending(on) {
+    gateSubmit.disabled = on;
+    gateBack.disabled = on;
+    const text = gateSubmit.querySelector(".gate-submit-text");
+    const spinner = gateSubmit.querySelector(".report-submit-spinner");
+    if (text) text.textContent = on ? "Sending…" : "Email me the link";
     if (spinner) spinner.hidden = !on;
+  }
+
+  function setGateError(msg) {
+    if (!msg) {
+      gateError.hidden = true;
+      gateError.textContent = "";
+      return;
+    }
+    gateError.hidden = false;
+    gateError.textContent = msg;
+  }
+
+  function showView({ form = false, gate = false, sent = false, output = false } = {}) {
+    if (formShell) formShell.hidden = !form;
+    reportGate.hidden = !gate;
+    reportSent.hidden = !sent;
+    reportOutput.hidden = !output;
+  }
+
+  function getUnlockTokenFromUrl() {
+    try {
+      return new URLSearchParams(window.location.search).get("token") || "";
+    } catch {
+      return "";
+    }
+  }
+
+  function clearTokenFromUrl() {
+    try {
+      const url = new URL(window.location.href);
+      if (!url.searchParams.has("token")) return;
+      url.searchParams.delete("token");
+      window.history.replaceState({}, "", url.pathname + url.search + url.hash);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  async function unlockWithToken(token) {
+    showView({});
+    setError("");
+    const resp = await fetch("/api/report/unlock", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token }),
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok) {
+      throw new Error(data.detail || "Could not unlock report");
+    }
+    clearTokenFromUrl();
+    showView({ output: true });
+    renderReport(data.report || {});
   }
 
   async function loadOptions() {
@@ -433,7 +504,7 @@
     renderMetricCatalog(data.metrics || []);
   }
 
-  reportForm.addEventListener("submit", async (e) => {
+  reportForm.addEventListener("submit", (e) => {
     e.preventDefault();
     setError("");
 
@@ -466,35 +537,94 @@
       return;
     }
 
-    setGenerating(true);
+    pendingBenchmark = { location, surgeryCount, metrics };
+    setGateError("");
+    showView({ gate: true });
+    reportGate.scrollIntoView({ behavior: "smooth", block: "start" });
+    gateName.focus();
+  });
 
+  gateBack.addEventListener("click", () => {
+    setGateError("");
+    showView({ form: true });
+    reportForm.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+
+  gateForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    setGateError("");
+
+    if (!pendingBenchmark) {
+      setGateError("Please complete the report form first.");
+      showView({ form: true });
+      return;
+    }
+
+    const name = gateName.value.trim();
+    const email = gateEmail.value.trim();
+    if (!name) {
+      setGateError("Please enter your name.");
+      gateName.focus();
+      return;
+    }
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setGateError("Please enter a valid email address.");
+      gateEmail.focus();
+      return;
+    }
+
+    setGateSending(true);
     try {
-      const resp = await fetch("/api/report/benchmark", {
+      const resp = await fetch("/api/report/request-link", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ location, surgeryCount, metrics }),
+        body: JSON.stringify({
+          name,
+          email,
+          ...pendingBenchmark,
+        }),
       });
       const data = await resp.json().catch(() => ({}));
       if (!resp.ok) {
-        throw new Error(data.detail || "Could not generate report");
+        throw new Error(data.detail || "Could not send unlock email");
       }
-      renderReport(data);
+      const masked = data.emailMasked || email;
+      reportSentCopy.textContent = `We’ve sent a private unlock link to ${masked}. Open it to view your benchmark report.`;
+      showView({ sent: true });
+      reportSent.scrollIntoView({ behavior: "smooth", block: "start" });
     } catch (err) {
-      setError(String(err.message || err));
-      reportOutput.hidden = true;
+      setGateError(String(err.message || err));
     } finally {
-      setGenerating(false);
+      setGateSending(false);
     }
   });
 
-  loadOptions().catch((err) => {
-    setError(String(err.message || err));
-    const text = locationTrigger.querySelector(".dd-trigger-text");
-    if (text) {
-      text.textContent = "Unable to load locations";
-      text.classList.add("dd-placeholder");
+  async function boot() {
+    const token = getUnlockTokenFromUrl();
+    if (token) {
+      try {
+        await unlockWithToken(token);
+        return;
+      } catch (err) {
+        showView({ form: true });
+        setError(String(err.message || err));
+      }
     }
-    locationTrigger.disabled = true;
-    surgeryTrigger.disabled = true;
-  });
+
+    showView({ form: true });
+    try {
+      await loadOptions();
+    } catch (err) {
+      setError(String(err.message || err));
+      const text = locationTrigger.querySelector(".dd-trigger-text");
+      if (text) {
+        text.textContent = "Unable to load locations";
+        text.classList.add("dd-placeholder");
+      }
+      locationTrigger.disabled = true;
+      surgeryTrigger.disabled = true;
+    }
+  }
+
+  boot();
 })();

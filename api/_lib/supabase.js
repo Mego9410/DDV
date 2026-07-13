@@ -74,5 +74,96 @@ async function insertRow(table, row) {
   return Array.isArray(data) ? data[0] ?? null : data;
 }
 
-module.exports = { fetchSecret, callRpc, insertRow };
+async function selectRows(table, { select = "*", filters = {}, limit = 1, order } = {}) {
+  const url = SUPABASE_URL?.replace(/\/$/, "");
+  requireEnv("SUPABASE_URL", url);
+  const params = new URLSearchParams({ select: String(select), limit: String(limit) });
+  for (const [key, value] of Object.entries(filters || {})) {
+    params.set(key, String(value));
+  }
+  if (order) params.set("order", order);
+  const resp = await fetch(`${url}/rest/v1/${table}?${params.toString()}`, {
+    headers: supabaseHeaders(),
+  });
+  const text = await resp.text();
+  if (!resp.ok) {
+    const err = new Error(text || `Supabase select failed (${resp.status})`);
+    err.statusCode = 500;
+    throw err;
+  }
+  return text ? JSON.parse(text) : [];
+}
+
+async function patchRows(table, filters, patch) {
+  const url = SUPABASE_URL?.replace(/\/$/, "");
+  requireEnv("SUPABASE_URL", url);
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(filters || {})) {
+    params.set(key, String(value));
+  }
+  const resp = await fetch(`${url}/rest/v1/${table}?${params.toString()}`, {
+    method: "PATCH",
+    headers: {
+      ...supabaseHeaders(),
+      "Content-Type": "application/json",
+      Prefer: "return=representation",
+    },
+    body: JSON.stringify(patch),
+  });
+  const text = await resp.text();
+  if (!resp.ok) {
+    const err = new Error(text || `Supabase patch failed (${resp.status})`);
+    err.statusCode = 500;
+    throw err;
+  }
+  const data = text ? JSON.parse(text) : [];
+  return Array.isArray(data) ? data : [];
+}
+
+/**
+ * Send a Supabase Auth magic link (email from Supabase — no custom domain required).
+ * redirectTo must be allow-listed under Auth → URL Configuration → Redirect URLs.
+ */
+async function sendAuthMagicLink({ email, redirectTo, data }) {
+  const url = SUPABASE_URL?.replace(/\/$/, "");
+  requireEnv("SUPABASE_URL", url);
+  const params = new URLSearchParams();
+  if (redirectTo) params.set("redirect_to", redirectTo);
+  const qs = params.toString() ? `?${params.toString()}` : "";
+  const resp = await fetch(`${url}/auth/v1/otp${qs}`, {
+    method: "POST",
+    headers: {
+      ...supabaseHeaders(),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      email,
+      create_user: true,
+      data: data && typeof data === "object" ? data : undefined,
+    }),
+  });
+  const text = await resp.text();
+  if (!resp.ok) {
+    let detail = text || `Supabase Auth OTP failed (${resp.status})`;
+    try {
+      const parsed = JSON.parse(text);
+      detail = parsed?.msg || parsed?.error_description || parsed?.message || detail;
+    } catch {
+      /* keep text */
+    }
+    const err = new Error(detail);
+    err.statusCode = resp.status === 429 ? 429 : 502;
+    throw err;
+  }
+  return text ? JSON.parse(text) : { ok: true };
+}
+
+module.exports = {
+  fetchSecret,
+  callRpc,
+  insertRow,
+  selectRows,
+  patchRows,
+  sendAuthMagicLink,
+};
 

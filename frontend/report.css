@@ -218,6 +218,104 @@ body.report-page {
   color: var(--fg-3);
 }
 
+.field-input {
+  width: 100%;
+  padding: 13px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--fg-1);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.3;
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+
+.field-input:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: var(--ring-gold);
+}
+
+/* ---------- Email gate ---------- */
+.report-gate,
+.report-sent {
+  margin-top: 28px;
+  animation: report-fade-up 420ms var(--ease-out) both;
+}
+
+.report-gate-card {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 32px 28px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+}
+
+.report-gate-card--sent {
+  text-align: center;
+}
+
+.report-gate-kicker {
+  margin: 0 0 10px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--gold-deep);
+}
+
+.report-gate-title {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: clamp(24px, 3.4vw, 30px);
+  font-weight: 600;
+  color: var(--fg-1);
+  line-height: 1.2;
+}
+
+.report-gate-lede {
+  margin: 12px 0 0;
+  font-size: 15.5px;
+  line-height: 1.55;
+  color: var(--fg-2);
+}
+
+.report-gate-form {
+  margin-top: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.report-gate-actions {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.report-sent-icon {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 16px;
+  border-radius: var(--r-md);
+  display: grid;
+  place-items: center;
+  background: var(--gold-tint);
+  color: var(--gold-deep);
+  border: 1px solid var(--gold-tint-2);
+}
+
+.report-sent-note {
+  margin: 18px 0 0;
+  font-size: 13px;
+  color: var(--fg-3);
+}
+
 /* ---------- Custom dropdown ---------- */
 .dd { position: relative; }
 
