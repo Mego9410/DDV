@@ -10,6 +10,10 @@
       "destination": "/api/$1"
     },
     {
+      "source": "/report",
+      "destination": "/frontend/report.html"
+    },
+    {
       "source": "/(.*)",
       "destination": "/frontend/$1"
     }

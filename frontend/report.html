@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#FFFFFF" />
+    <title>Practice Benchmark Report — Frank Taylor &amp; Associates</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Lora:ital,wght@0,500;0,600;0,700;1,600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./report.css" />
+  </head>
+  <body class="report-page">
+    <div class="bg" aria-hidden="true"></div>
+
+    <main class="report-shell">
+      <header class="topbar">
+        <div class="brand">
+          <div class="logo" aria-hidden="true">FTA</div>
+          <div class="brand-text">
+            <span class="brand-name">Frank Taylor &amp; Associates</span>
+            <span class="brand-sub">Practice benchmark report</span>
+          </div>
+        </div>
+      </header>
+
+      <section class="report-intro">
+        <p class="report-kicker">Client report</p>
+        <h1 class="report-title">Where does your practice sit?</h1>
+        <p class="report-lede">
+          Choose your location and surgery count, tick the figures you want to compare, and enter
+          your own amounts. We’ll show how you compare to national and local peer medians — no chat,
+          just structured results.
+        </p>
+      </section>
+
+      <form class="report-form" id="reportForm" novalidate>
+        <div class="report-form-grid">
+          <label class="field">
+            <span class="field-label">Location</span>
+            <select class="field-control" id="locationSelect" name="location" required>
+              <option value="">Loading locations…</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span class="field-label">Number of surgeries</span>
+            <select class="field-control" id="surgerySelect" name="surgeryCount" required>
+              <option value="">Select…</option>
+            </select>
+          </label>
+        </div>
+
+        <fieldset class="metric-fieldset">
+          <legend class="field-label">Elements to compare</legend>
+          <p class="field-hint">Tick each item, then enter your practice’s figure in £.</p>
+
+          <div class="metric-groups" id="metricGroups"></div>
+        </fieldset>
+
+        <div class="report-form-actions">
+          <p class="form-error" id="formError" hidden></p>
+          <button class="btn btn-primary" id="btnGenerate" type="submit">Generate report</button>
+        </div>
+      </form>
+
+      <section class="report-output" id="reportOutput" hidden aria-live="polite">
+        <div class="report-output-header">
+          <h2 class="report-output-title">Your benchmark report</h2>
+          <p class="report-cohort" id="reportCohort"></p>
+          <p class="report-footnote" id="reportFootnote" hidden></p>
+        </div>
+        <div class="report-rows" id="reportRows"></div>
+      </section>
+
+      <footer class="report-footer">
+        <p>
+          Figures are medians from Frank Taylor &amp; Associates’ practice dataset. Individual
+          practices are never shown. Local peer groups may be widened by surgery count or distance
+          when the exact match is too small.
+        </p>
+      </footer>
+    </main>
+
+    <script src="./report.js" defer></script>
+  </body>
+</html>

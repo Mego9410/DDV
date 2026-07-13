@@ -1,0 +1,381 @@
+/* Practice benchmark report — extends FTA tokens from styles.css */
+
+body.report-page {
+  overflow: auto;
+  min-height: 100%;
+  height: auto;
+}
+
+.report-shell {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 18px 24px 64px;
+  min-height: var(--vh);
+  display: flex;
+  flex-direction: column;
+}
+
+.report-intro {
+  padding: 28px 0 8px;
+  animation: report-fade-up 480ms var(--ease-out) both;
+}
+
+.report-kicker {
+  margin: 0 0 14px;
+  font-family: var(--font-sans);
+  font-weight: 700;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  font-size: 12.5px;
+  color: var(--gold-deep);
+}
+
+.report-title {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: clamp(32px, 5vw, 48px);
+  line-height: 1.15;
+  letter-spacing: var(--tracking-tight);
+  color: var(--fg-1);
+  text-wrap: balance;
+}
+
+.report-lede {
+  margin: 16px 0 0;
+  max-width: 42rem;
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--fg-2);
+}
+
+.report-form {
+  margin-top: 32px;
+  padding: 28px 0 8px;
+  border-top: 1px solid var(--border);
+  animation: report-fade-up 560ms var(--ease-out) 80ms both;
+}
+
+.report-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px 20px;
+}
+
+@media (max-width: 640px) {
+  .report-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.field-label {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--fg-1);
+}
+
+.field-hint {
+  margin: 6px 0 0;
+  font-size: 14px;
+  color: var(--fg-3);
+}
+
+.field-control {
+  appearance: none;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--fg-1);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.3;
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+
+.field-control:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: var(--ring-gold);
+}
+
+.metric-fieldset {
+  margin: 28px 0 0;
+  padding: 0;
+  border: none;
+}
+
+.metric-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  margin-top: 16px;
+}
+
+.metric-group-title {
+  margin: 0 0 10px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--fg-3);
+}
+
+.metric-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.metric-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(140px, 200px);
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  border: 1px solid transparent;
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+
+.metric-row.is-active {
+  background: var(--gold-tint);
+  border-color: var(--gold-tint-2);
+}
+
+.metric-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  cursor: pointer;
+  color: var(--fg-1);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.metric-check input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--gold-deep);
+  flex: none;
+}
+
+.metric-value {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-sm);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  color: var(--fg-1);
+  background: var(--surface);
+}
+
+.metric-value:disabled {
+  opacity: 0.45;
+  background: var(--surface-2);
+}
+
+.metric-value:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: var(--ring-gold);
+}
+
+@media (max-width: 560px) {
+  .metric-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.report-form-actions {
+  margin-top: 28px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+}
+
+.form-error {
+  margin: 0;
+  flex: 1 1 100%;
+  color: var(--danger);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.report-output {
+  margin-top: 40px;
+  padding-top: 32px;
+  border-top: 1px solid var(--border);
+  animation: report-fade-up 420ms var(--ease-out) both;
+}
+
+.report-output-title {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--fg-1);
+}
+
+.report-cohort {
+  margin: 10px 0 0;
+  font-size: 16px;
+  color: var(--fg-2);
+  max-width: 40rem;
+}
+
+.report-footnote {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--fg-3);
+}
+
+.report-rows {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.report-row {
+  padding: 18px 0;
+  border-bottom: 1px solid var(--border);
+  animation: report-fade-up 400ms var(--ease-out) both;
+}
+
+.report-row:last-child {
+  border-bottom: none;
+}
+
+.report-row-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-bottom: 12px;
+}
+
+.report-row-label {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--fg-1);
+}
+
+.report-row-yours {
+  font-variant-numeric: tabular-nums;
+  font-size: 15px;
+  color: var(--fg-2);
+}
+
+.report-row-yours strong {
+  color: var(--fg-1);
+  font-weight: 700;
+}
+
+.report-compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 20px;
+}
+
+@media (max-width: 640px) {
+  .report-compare {
+    grid-template-columns: 1fr;
+  }
+}
+
+.compare-block {
+  min-width: 0;
+}
+
+.compare-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+  margin-bottom: 4px;
+}
+
+.compare-median {
+  font-variant-numeric: tabular-nums;
+  font-size: 15px;
+  color: var(--fg-1);
+  font-weight: 600;
+}
+
+.compare-delta {
+  margin-top: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.compare-delta.is-above {
+  color: var(--available-fg);
+}
+
+.compare-delta.is-below {
+  color: var(--danger);
+}
+
+.compare-delta.is-flat {
+  color: var(--fg-3);
+}
+
+.compare-n {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--fg-3);
+}
+
+.compare-note {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--fg-3);
+  font-style: italic;
+}
+
+.report-footer {
+  margin-top: auto;
+  padding-top: 48px;
+}
+
+.report-footer p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--fg-3);
+  max-width: 40rem;
+}
+
+@keyframes report-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
