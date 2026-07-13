@@ -150,7 +150,7 @@
   function renderReport(data) {
     const cohort = data?.cohort || {};
     reportCohort.textContent = cohort.label
-      ? `Local peer group: ${cohort.label}.`
+      ? `Local peer group: ${cohort.label}`
       : "Local peer group selected from your location and surgery count.";
 
     const notes = [];
@@ -194,7 +194,7 @@
 
       const yours = document.createElement("div");
       yours.className = "report-row-yours";
-      yours.innerHTML = `Your figure: <strong>${formatMoney(row.your_value, row.id)}</strong>`;
+      yours.innerHTML = `Your figure <strong>${formatMoney(row.your_value, row.id)}</strong>`;
 
       head.appendChild(label);
       head.appendChild(yours);
@@ -204,28 +204,29 @@
 
       const natDelta = formatPctDelta(row.pct_vs_national);
       const natBlock = document.createElement("div");
-      natBlock.className = "compare-block";
+      natBlock.className = `compare-block ${natDelta.cls}`;
       natBlock.innerHTML = `
-        <div class="compare-label">National</div>
+        <div class="compare-label">National median</div>
         <div class="compare-median">${formatMoney(row.national?.median, row.id)}</div>
         <div class="compare-delta ${natDelta.cls}">${natDelta.text}</div>
-        <div class="compare-n">n = ${row.national?.n ?? 0}</div>
+        <div class="compare-n">Based on ${row.national?.n ?? 0} practices</div>
       `;
 
       const locBlock = document.createElement("div");
-      locBlock.className = "compare-block";
       if (row.local_suppressed || !row.local) {
+        locBlock.className = "compare-block";
         locBlock.innerHTML = `
           <div class="compare-label">Local peers</div>
           <div class="compare-note">Local pool too small to compare (fewer than 5 practices with this figure).</div>
         `;
       } else {
         const locDelta = formatPctDelta(row.pct_vs_local);
+        locBlock.className = `compare-block ${locDelta.cls}`;
         locBlock.innerHTML = `
-          <div class="compare-label">Local peers</div>
+          <div class="compare-label">Local peer median</div>
           <div class="compare-median">${formatMoney(row.local?.median, row.id)}</div>
           <div class="compare-delta ${locDelta.cls}">${locDelta.text}</div>
-          <div class="compare-n">n = ${row.local?.n ?? 0}</div>
+          <div class="compare-n">Based on ${row.local?.n ?? 0} practices</div>
         `;
       }
 
@@ -237,12 +238,11 @@
 
       if (row.national_same_size?.n > 0 && row.national_same_size?.median != null) {
         const same = document.createElement("div");
-        same.className = "compare-n";
-        same.style.marginTop = "10px";
+        same.className = "report-same-size";
         same.textContent = `National same-size median: ${formatMoney(
           row.national_same_size.median,
           row.id
-        )} (n = ${row.national_same_size.n})`;
+        )} (${row.national_same_size.n} practices)`;
         el.appendChild(same);
       }
 
@@ -251,6 +251,14 @@
 
     reportOutput.hidden = false;
     reportOutput.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function setGenerating(on) {
+    btnGenerate.disabled = on;
+    const text = btnGenerate.querySelector(".report-submit-text");
+    const spinner = btnGenerate.querySelector(".report-submit-spinner");
+    if (text) text.textContent = on ? "Generating…" : "Generate report";
+    if (spinner) spinner.hidden = !on;
   }
 
   async function loadOptions() {
@@ -310,8 +318,7 @@
       return;
     }
 
-    btnGenerate.disabled = true;
-    btnGenerate.textContent = "Generating…";
+    setGenerating(true);
 
     try {
       const resp = await fetch("/api/report/benchmark", {
@@ -328,8 +335,7 @@
       setError(String(err.message || err));
       reportOutput.hidden = true;
     } finally {
-      btnGenerate.disabled = false;
-      btnGenerate.textContent = "Generate report";
+      setGenerating(false);
     }
   });
 

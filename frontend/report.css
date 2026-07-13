@@ -1,4 +1,6 @@
-/* Practice benchmark report — extends FTA tokens from styles.css */
+/* ============================================================
+   Practice benchmark report — extends FTA tokens from styles.css
+   ============================================================ */
 
 body.report-page {
   overflow: auto;
@@ -6,54 +8,213 @@ body.report-page {
   height: auto;
 }
 
-.report-shell {
-  max-width: 880px;
+.report-bg {
+  background:
+    radial-gradient(980px 420px at 14% -100px, var(--gold-tint), transparent 64%),
+    radial-gradient(720px 380px at 100% 0%, rgba(228, 173, 37, 0.1), transparent 58%),
+    linear-gradient(180deg, #fffdf7 0%, var(--surface) 40%);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------- Sticky nav (matches homepage) ---------- */
+.report-nav {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  backdrop-filter: saturate(1.1) blur(10px);
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
+  border-bottom: 1px solid var(--border);
+}
+
+.report-nav-inner {
+  max-width: 920px;
   margin: 0 auto;
-  padding: 18px 24px 64px;
-  min-height: var(--vh);
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.report-nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.report-nav-cta {
+  padding: 10px 18px;
+  font-size: 14px;
+  text-decoration: none;
+}
+
+/* ---------- Shell ---------- */
+.report-shell {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 0 24px 72px;
+  min-height: calc(var(--vh) - 72px);
   display: flex;
   flex-direction: column;
 }
 
+/* ---------- Intro ---------- */
 .report-intro {
-  padding: 28px 0 8px;
+  padding: clamp(36px, 6vw, 56px) 0 8px;
   animation: report-fade-up 480ms var(--ease-out) both;
 }
 
-.report-kicker {
-  margin: 0 0 14px;
-  font-family: var(--font-sans);
-  font-weight: 700;
-  letter-spacing: var(--tracking-wide);
-  text-transform: uppercase;
+.report-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
   font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
   color: var(--gold-deep);
+  background: var(--surface);
+  border: 1px solid var(--gold-tint-2);
+  padding: 8px 16px;
+  border-radius: var(--r-pill);
+  box-shadow: var(--shadow-xs);
+}
+
+.report-badge-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--gold);
+  box-shadow: 0 0 0 4px var(--gold-tint);
 }
 
 .report-title {
-  margin: 0;
+  margin: 18px 0 0;
   font-family: var(--font-serif);
   font-weight: 600;
-  font-size: clamp(32px, 5vw, 48px);
-  line-height: 1.15;
+  font-size: clamp(34px, 5.4vw, 52px);
+  line-height: 1.12;
   letter-spacing: var(--tracking-tight);
   color: var(--fg-1);
   text-wrap: balance;
 }
 
 .report-lede {
-  margin: 16px 0 0;
-  max-width: 42rem;
+  margin: 14px 0 0;
+  max-width: 40rem;
   font-size: 17px;
   line-height: 1.6;
   color: var(--fg-2);
 }
 
-.report-form {
-  margin-top: 32px;
-  padding: 28px 0 8px;
-  border-top: 1px solid var(--border);
+.report-steps-hint {
+  list-style: none;
+  margin: 22px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.report-steps-hint li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  padding: 7px 12px 7px 8px;
+}
+
+.report-steps-hint li span {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--gold);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+/* ---------- Form panel ---------- */
+.report-panel {
+  margin-top: 28px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
   animation: report-fade-up 560ms var(--ease-out) 80ms both;
+}
+
+.report-form {
+  margin: 0;
+  padding: 0;
+}
+
+.report-form-section {
+  padding: 28px 28px 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.report-form-section:last-of-type {
+  border-bottom: none;
+}
+
+.report-form-section-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.report-step-num {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-sm);
+  display: grid;
+  place-items: center;
+  background: var(--gold);
+  color: var(--ink);
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: 16px;
+  box-shadow: var(--shadow-xs);
+}
+
+.report-step-num--done {
+  background: var(--ink);
+  color: var(--gold);
+}
+
+.report-form-section-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: var(--tracking-snug);
+  color: var(--fg-1);
+}
+
+.report-form-section-hint {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: var(--fg-3);
 }
 
 .report-form-grid {
@@ -63,6 +224,10 @@ body.report-page {
 }
 
 @media (max-width: 640px) {
+  .report-form-section {
+    padding: 22px 20px;
+  }
+
   .report-form-grid {
     grid-template-columns: 1fr;
   }
@@ -82,23 +247,21 @@ body.report-page {
   color: var(--fg-1);
 }
 
-.field-hint {
-  margin: 6px 0 0;
-  font-size: 14px;
-  color: var(--fg-3);
-}
-
 .field-control {
   appearance: none;
   width: 100%;
-  padding: 12px 14px;
+  padding: 13px 40px 13px 14px;
   border: 1.5px solid var(--border);
   border-radius: var(--r-md);
-  background: var(--surface);
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238C8C88' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")
+    no-repeat right 14px center / 16px,
+    var(--surface);
   color: var(--fg-1);
   font-family: var(--font-sans);
   font-size: 15px;
   line-height: 1.3;
+  cursor: pointer;
   transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
 }
 
@@ -109,7 +272,7 @@ body.report-page {
 }
 
 .metric-fieldset {
-  margin: 28px 0 0;
+  margin: 0;
   padding: 0;
   border: none;
 }
@@ -118,12 +281,11 @@ body.report-page {
   display: flex;
   flex-direction: column;
   gap: 22px;
-  margin-top: 16px;
 }
 
 .metric-group-title {
   margin: 0 0 10px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: var(--tracking-wide);
   text-transform: uppercase;
@@ -138,18 +300,23 @@ body.report-page {
 
 .metric-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(140px, 200px);
+  grid-template-columns: minmax(0, 1fr) minmax(150px, 210px);
   gap: 12px;
   align-items: center;
-  padding: 10px 12px;
+  padding: 12px 14px;
   border-radius: var(--r-md);
-  border: 1px solid transparent;
-  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  transition:
+    background var(--dur) var(--ease),
+    border-color var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
 }
 
 .metric-row.is-active {
   background: var(--gold-tint);
   border-color: var(--gold-tint-2);
+  box-shadow: var(--shadow-xs);
 }
 
 .metric-check {
@@ -160,7 +327,7 @@ body.report-page {
   cursor: pointer;
   color: var(--fg-1);
   font-size: 15px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .metric-check input {
@@ -172,18 +339,21 @@ body.report-page {
 
 .metric-value {
   width: 100%;
-  padding: 10px 12px;
+  padding: 11px 12px;
   border: 1.5px solid var(--border);
   border-radius: var(--r-sm);
   font-family: var(--font-sans);
   font-size: 15px;
+  font-variant-numeric: tabular-nums;
   color: var(--fg-1);
   background: var(--surface);
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
 }
 
 .metric-value:disabled {
-  opacity: 0.45;
-  background: var(--surface-2);
+  opacity: 0.4;
+  background: var(--surface-3);
+  cursor: not-allowed;
 }
 
 .metric-value:focus {
@@ -199,11 +369,19 @@ body.report-page {
 }
 
 .report-form-actions {
-  margin-top: 28px;
+  padding: 20px 28px 24px;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 14px;
+  background: linear-gradient(180deg, #fffdf8, var(--gold-tint));
+  border-top: 1px solid var(--gold-tint-2);
+}
+
+@media (max-width: 640px) {
+  .report-form-actions {
+    padding: 18px 20px 22px;
+  }
 }
 
 .form-error {
@@ -214,6 +392,22 @@ body.report-page {
   font-weight: 600;
 }
 
+.report-submit {
+  min-width: 200px;
+  justify-content: center;
+  position: relative;
+  text-decoration: none;
+}
+
+.report-submit-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(15, 15, 10, 0.2);
+  border-top-color: var(--ink);
+  border-radius: 50%;
+  animation: report-spin 0.7s linear infinite;
+}
+
 .btn:disabled {
   opacity: 0.55;
   cursor: not-allowed;
@@ -221,49 +415,94 @@ body.report-page {
   box-shadow: none !important;
 }
 
+/* ---------- Output ---------- */
 .report-output {
-  margin-top: 40px;
-  padding-top: 32px;
-  border-top: 1px solid var(--border);
+  margin-top: 36px;
   animation: report-fade-up 420ms var(--ease-out) both;
+}
+
+.report-output-header {
+  margin-bottom: 8px;
+}
+
+.report-output-head-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
 }
 
 .report-output-title {
   margin: 0;
   font-family: var(--font-serif);
-  font-size: 28px;
+  font-size: clamp(26px, 3.6vw, 34px);
   font-weight: 600;
   color: var(--fg-1);
 }
 
+.report-output-sub {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: var(--fg-3);
+}
+
+.report-cohort-card {
+  margin-top: 18px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--gold-tint-2);
+  background: var(--gold-tint);
+}
+
+.report-cohort-icon {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-sm);
+  display: grid;
+  place-items: center;
+  background: var(--surface);
+  color: var(--gold-deep);
+  border: 1px solid var(--gold-tint-2);
+}
+
 .report-cohort {
-  margin: 10px 0 0;
-  font-size: 16px;
-  color: var(--fg-2);
-  max-width: 40rem;
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--fg-1);
+  font-weight: 600;
 }
 
 .report-footnote {
-  margin: 8px 0 0;
+  margin: 10px 0 0;
   font-size: 13px;
+  line-height: 1.5;
   color: var(--fg-3);
 }
 
 .report-rows {
-  margin-top: 24px;
+  margin-top: 20px;
   display: flex;
   flex-direction: column;
   gap: 14px;
 }
 
 .report-row {
-  padding: 18px 0;
-  border-bottom: 1px solid var(--border);
+  padding: 22px 22px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-xs);
   animation: report-fade-up 400ms var(--ease-out) both;
+  transition: box-shadow var(--dur) var(--ease), border-color var(--dur) var(--ease);
 }
 
-.report-row:last-child {
-  border-bottom: none;
+.report-row:hover {
+  box-shadow: var(--shadow-sm);
+  border-color: var(--gold-tint-2);
 }
 
 .report-row-head {
@@ -272,33 +511,41 @@ body.report-page {
   align-items: baseline;
   justify-content: space-between;
   gap: 8px 16px;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
 }
 
 .report-row-label {
-  font-size: 17px;
-  font-weight: 700;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: var(--tracking-snug);
   color: var(--fg-1);
 }
 
 .report-row-yours {
   font-variant-numeric: tabular-nums;
-  font-size: 15px;
+  font-size: 14px;
   color: var(--fg-2);
 }
 
 .report-row-yours strong {
   color: var(--fg-1);
-  font-weight: 700;
+  font-weight: 800;
+  font-size: 16px;
 }
 
 .report-compare {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px 20px;
+  gap: 12px;
 }
 
 @media (max-width: 640px) {
+  .report-row {
+    padding: 18px 16px 16px;
+  }
+
   .report-compare {
     grid-template-columns: 1fr;
   }
@@ -306,28 +553,43 @@ body.report-page {
 
 .compare-block {
   min-width: 0;
+  padding: 14px 14px 12px;
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  border: 1px solid transparent;
+}
+
+.compare-block.is-above {
+  background: color-mix(in srgb, var(--available-fg) 8%, var(--surface));
+  border-color: color-mix(in srgb, var(--available-fg) 22%, transparent);
+}
+
+.compare-block.is-below {
+  background: color-mix(in srgb, var(--danger) 7%, var(--surface));
+  border-color: color-mix(in srgb, var(--danger) 20%, transparent);
 }
 
 .compare-label {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--fg-3);
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 .compare-median {
   font-variant-numeric: tabular-nums;
-  font-size: 15px;
+  font-size: 20px;
   color: var(--fg-1);
-  font-weight: 600;
+  font-weight: 800;
+  letter-spacing: var(--tracking-snug);
 }
 
 .compare-delta {
-  margin-top: 4px;
-  font-size: 14px;
-  font-weight: 600;
+  margin-top: 6px;
+  font-size: 13.5px;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
@@ -344,7 +606,7 @@ body.report-page {
 }
 
 .compare-n {
-  margin-top: 2px;
+  margin-top: 4px;
   font-size: 12px;
   color: var(--fg-3);
 }
@@ -354,8 +616,18 @@ body.report-page {
   font-size: 13px;
   color: var(--fg-3);
   font-style: italic;
+  line-height: 1.45;
 }
 
+.report-same-size {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border);
+  font-size: 12.5px;
+  color: var(--fg-3);
+}
+
+/* ---------- Footer ---------- */
 .report-footer {
   margin-top: auto;
   padding-top: 48px;
@@ -366,9 +638,10 @@ body.report-page {
   font-size: 13px;
   line-height: 1.55;
   color: var(--fg-3);
-  max-width: 40rem;
+  max-width: 42rem;
 }
 
+/* ---------- Motion ---------- */
 @keyframes report-fade-up {
   from {
     opacity: 0;
@@ -377,5 +650,21 @@ body.report-page {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes report-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .report-intro,
+  .report-panel,
+  .report-output,
+  .report-row,
+  .report-submit-spinner {
+    animation: none;
   }
 }
