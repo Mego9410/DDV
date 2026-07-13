@@ -401,9 +401,8 @@
 
   function renderReport(data) {
     const cohort = data?.cohort || {};
-    reportCohort.textContent = cohort.label
-      ? `Local peer group: ${cohort.label}`
-      : "Local peer group selected from your location and surgery count.";
+    reportCohort.textContent =
+      cohort.label || "Compared with similar-size practices near you.";
 
     reportRows.innerHTML = "";
     const metrics = Array.isArray(data?.metrics) ? data.metrics : [];
