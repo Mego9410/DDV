@@ -88,33 +88,49 @@
     return `${n > 0 ? "+" : ""}${n.toFixed(1)}%`;
   }
 
-  // Position line: your value and the peer medians plotted on one shared
-  // pounds axis. Distance is literal and uncapped, so how far above (or below)
-  // a median you sit is drawn to scale. Colour keeps the green-above /
-  // red-below convention, driven by the local comparison (national if local
-  // is suppressed).
+  // Position line: your value and peer medians on one pounds axis.
+  // Always start at £0 so distance is representative of absolute amounts —
+  // otherwise close medians sit on the left edge whenever you are higher,
+  // which makes a modest gap look extreme.
   function buildPositionLine(row) {
     const you = Number(row.your_value);
     const nat =
       row.national && row.national.median != null ? Number(row.national.median) : null;
     const hasLocal = !row.local_suppressed && row.local && row.local.median != null;
     const loc = hasLocal ? Number(row.local.median) : null;
+    const same =
+      row.national_same_size && row.national_same_size.median != null
+        ? Number(row.national_same_size.median)
+        : null;
 
-    const pts = [you, nat, loc].filter((v) => v != null && Number.isFinite(v));
-    let min = Math.min(...pts);
-    let max = Math.max(...pts);
-    let pad = (max - min) * 0.12;
-    if (!(pad > 0)) pad = (Math.abs(max) || 1) * 0.1;
-    min -= pad;
-    max += pad;
+    const pts = [you, nat, loc].filter((v) => v != null && Number.isFinite(v) && v >= 0);
+    if (!pts.length) {
+      return `<div class="bench"><p class="compare-note">No figures to plot.</p></div>`;
+    }
+
+    const peak = Math.max(...pts);
+    const peerRef = Math.max(nat || 0, loc || 0, same || 0);
+    // Keep headroom above the top point, and ensure the scale is wide enough
+    // that peer medians aren't crushed against the end when you are an outlier.
+    let max = Math.max(peak * 1.06, peerRef > 0 ? peerRef * 2 : peak * 1.06);
+    // Soft-cap extreme outliers: if you're more than ~2× the peers, don't let
+    // the axis chase all the way to your figure — park you near the right edge.
+    const softCap = peerRef > 0 ? peerRef * 2.15 : max;
+    const plotYou = you > softCap ? softCap : you;
+    if (you > softCap) max = softCap * 1.04;
+
+    const min = 0;
     const span = max - min || 1;
-    const x = (v) => ((v - min) / span) * 100;
+    const x = (v) => {
+      const t = ((Number(v) - min) / span) * 100;
+      return Math.max(2, Math.min(98, t));
+    };
 
     const dir = benchDir(hasLocal ? row.pct_vs_local : row.pct_vs_national);
     const natDir = benchDir(row.pct_vs_national);
     const locDir = benchDir(row.pct_vs_local);
 
-    const xYou = x(you);
+    const xYou = x(plotYou);
     const barAnchor = hasLocal ? loc : nat;
     const barL = barAnchor != null ? Math.min(x(barAnchor), xYou) : xYou;
     const barW = barAnchor != null ? Math.abs(xYou - x(barAnchor)) : 0;
@@ -123,14 +139,25 @@
         ? `right:${(100 - xYou).toFixed(1)}%;text-align:right`
         : `left:${xYou.toFixed(1)}%;transform:translateX(-50%)`;
 
-    let ticks = "";
-    if (nat != null) {
-      ticks += `<span class="bench-tick" style="left:${x(nat)}%"></span>`;
-      ticks += `<span class="bench-tlabel" style="left:${x(nat)}%">National</span>`;
+    // Separate national/local ticks when they would otherwise stack on top of each other
+    let natX = nat != null ? x(nat) : null;
+    let locX = hasLocal ? x(loc) : null;
+    if (natX != null && locX != null && Math.abs(natX - locX) < 3.5) {
+      if (nat >= loc) {
+        natX = Math.min(96, locX + 3.5);
+      } else {
+        locX = Math.min(96, natX + 3.5);
+      }
     }
-    if (hasLocal) {
-      ticks += `<span class="bench-tick loc" style="left:${x(loc)}%"></span>`;
-      ticks += `<span class="bench-tlabel below" style="left:${x(loc)}%">Local</span>`;
+
+    let ticks = "";
+    if (nat != null && natX != null) {
+      ticks += `<span class="bench-tick" style="left:${natX.toFixed(1)}%"></span>`;
+      ticks += `<span class="bench-tlabel" style="left:${natX.toFixed(1)}%">National</span>`;
+    }
+    if (hasLocal && locX != null) {
+      ticks += `<span class="bench-tick loc" style="left:${locX.toFixed(1)}%"></span>`;
+      ticks += `<span class="bench-tlabel below" style="left:${locX.toFixed(1)}%">Local</span>`;
     }
 
     let chips = "";
@@ -162,11 +189,8 @@
         row.id
       )}</b></span>`;
     }
-    if (row.national_same_size && row.national_same_size.median != null) {
-      legend += `<span>Same-size <b>${formatMoney(
-        row.national_same_size.median,
-        row.id
-      )}</b></span>`;
+    if (same != null) {
+      legend += `<span>Same-size <b>${formatMoney(same, row.id)}</b></span>`;
     }
 
     return `
