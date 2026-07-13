@@ -5,13 +5,15 @@
 --   1. National comparison is SIZE-MATCHED (same surgery band),
 --      widening the band only if needed, else all practices.
 --   2. Each metric finds its OWN local pool, widening surgery band
---      then distance (25 -> 50 -> 100 -> 150 miles) and finally
---      "similar size nationally", stopping as soon as there are
---      enough comparable practices. One sparse line (e.g. NHS income
---      in a private-heavy area) no longer drags every other line's
---      geography wider.
---   3. A real minimum sample (TARGET_N) is targeted; a pool below
---      MIN_SHOW_N is suppressed rather than shown as fact.
+--      then distance (25 -> 50 -> 100 -> 150 miles), stopping as soon
+--      as there are enough comparable practices. One sparse line (e.g.
+--      NHS income in a private-heavy area) no longer drags every other
+--      line's geography wider.
+--   3. A real minimum sample (TARGET_N) is targeted; a local pool still
+--      too thin at 150 miles is suppressed (the size-matched national
+--      still carries the line) rather than shown as fact or relabelled.
+--   4. Per-metric sanity bounds drop obvious data errors before the
+--      median (e.g. a UDA rate of £1,102, a £ total under £250).
 --
 -- Aggregate-only. Returns medians and deltas; never sample counts,
 -- pool footnotes or practice rows (client view stays clean).
@@ -20,7 +22,7 @@
 -- Internal helper: median + count for one column under an arbitrary,
 -- already-safe WHERE clause. Not granted to callers directly; only the
 -- SECURITY DEFINER benchmark function below calls it.
-create or replace function public.ddv_pool_stat(p_col text, p_where text)
+create or replace function public.ddv_pool_stat(p_col text, p_where text, p_lo numeric, p_hi numeric)
 returns table(n bigint, med numeric)
 language plpgsql
 stable
@@ -28,6 +30,8 @@ security definer
 set search_path = public
 as $$
 begin
+  -- p_lo/p_hi are per-metric sanity bounds: values outside them are
+  -- treated as data errors and excluded before taking the median.
   -- percentile_cont returns double precision (numeric inputs are cast to
   -- double), so cast back to numeric to match the declared return type.
   return query execute format(
@@ -37,15 +41,16 @@ begin
         (percentile_cont(0.5) within group (order by %1$I))::numeric
       from public.practices
       where (%2$s)
-        and %1$I is not null and %1$I > 0
+        and %1$I is not null
+        and %1$I >= %3$s and %1$I <= %4$s
     $q$,
-    p_col, p_where
+    p_col, p_where, p_lo, p_hi
   );
 end;
 $$;
 
-revoke all on function public.ddv_pool_stat(text, text) from public;
-revoke all on function public.ddv_pool_stat(text, text) from anon, authenticated;
+revoke all on function public.ddv_pool_stat(text, text, numeric, numeric) from public;
+revoke all on function public.ddv_pool_stat(text, text, numeric, numeric) from anon, authenticated;
 
 create or replace function public.ddv_client_benchmark(payload jsonb)
 returns jsonb
@@ -71,8 +76,8 @@ declare
   v_col text;
   v_your numeric;
 
-  v_lo int;
-  v_hi int;
+  v_lo numeric;  -- per-metric lower sanity bound
+  v_hi numeric;  -- per-metric upper sanity bound
   v_where text;
   v_geo text;
   v_n bigint;
@@ -142,6 +147,14 @@ begin
       raise exception 'value required for metric %', v_id;
     end if;
 
+    -- Per-metric sanity bounds: drop obvious data errors before the median.
+    -- UDA rate is a per-UDA rate (~£15-40), not a £ total.
+    if v_id = 'uda_rate' then
+      v_lo := 5; v_hi := 150;
+    else
+      v_lo := 250; v_hi := 25000000;
+    end if;
+
     -- ---------------------------------------------------------
     -- NATIONAL, size-matched: widen the surgery band until we have
     -- enough, else fall back to all practices.
@@ -156,7 +169,7 @@ begin
         s_hi := least(50, v_surgery + (step - 1));
       end if;
       v_where := format('surgery_count between %s and %s', s_lo, s_hi);
-      select n, med into v_n, v_med from public.ddv_pool_stat(v_col, v_where);
+      select n, med into v_n, v_med from public.ddv_pool_stat(v_col, v_where, v_lo, v_hi);
       if v_med is not null and (nat_med is null or v_n > nat_n) then
         nat_med := v_med; nat_n := v_n;
         nat_basis := case when s_lo = s_hi
@@ -167,7 +180,7 @@ begin
     end loop;
     if not s_found then
       -- all practices, any size
-      select n, med into v_n, v_med from public.ddv_pool_stat(v_col, 'true');
+      select n, med into v_n, v_med from public.ddv_pool_stat(v_col, 'true', v_lo, v_hi);
       if v_med is not null and (nat_med is null or v_n >= nat_n) then
         nat_med := v_med; nat_n := v_n; nat_basis := 'all practices nationally';
       end if;
@@ -229,7 +242,7 @@ begin
         );
       end if;
 
-      select n, med into v_n, v_med from public.ddv_pool_stat(v_col, v_where);
+      select n, med into v_n, v_med from public.ddv_pool_stat(v_col, v_where, v_lo, v_hi);
 
       if v_med is not null and v_n > best_n then
         best_med := v_med; best_n := v_n;

@@ -3,7 +3,6 @@ const METRICS = [
   { id: "net_profit", label: "Net profit", unit: "gbp", column: "cert_net_profit_gbp", group: "income" },
   { id: "nhs_income", label: "NHS income", unit: "gbp", column: "income_split_nhs_value", group: "income" },
   { id: "fpi_income", label: "Private (FPI) income", unit: "gbp", column: "income_split_fpi_value", group: "income" },
-  { id: "rent_income", label: "Rent income", unit: "gbp", column: "income_split_rent_value", group: "income" },
   { id: "uda_rate", label: "UDA rate", unit: "gbp", column: "uda_rate_gbp", group: "income" },
   { id: "associates", label: "Associates", unit: "gbp", column: "cert_associates_gbp", group: "costs" },
   { id: "wages", label: "Staff wages", unit: "gbp", column: "cert_wages_gbp", group: "costs" },
