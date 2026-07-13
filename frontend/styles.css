@@ -293,7 +293,21 @@ body{
   line-height: 1;
   cursor:not-allowed;
   flex: none;
+  display:grid;
+  place-items:center;
 }
+.icon-btn--action{
+  cursor:pointer;
+  color: var(--fg-2);
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease), color var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+.icon-btn--action:hover{
+  background: var(--gold-tint);
+  border-color: var(--gold);
+  color: var(--ink);
+  transform: translateY(-1px);
+}
+.icon-btn--action:active{ transform: none; }
 
 .composer-input{
   flex:1;
@@ -608,6 +622,123 @@ body{
 .modal-actions .btn-primary{ padding: 13px 24px; }
 .modal-error{ margin-top: 12px; color: var(--danger); font-size: 13px; }
 
+/* ---------- Bug report side panel ---------- */
+.bug-panel{
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+}
+.bug-panel.is-open{ pointer-events: auto; }
+.bug-panel-backdrop{
+  position: absolute;
+  inset: 0;
+  background: rgba(15,15,10,.28);
+  opacity: 0;
+  transition: opacity var(--dur-slow) var(--ease);
+}
+.bug-panel.is-open .bug-panel-backdrop{ opacity: 1; }
+.bug-panel-sheet{
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: min(420px, 100vw);
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  box-shadow: var(--shadow-lg);
+  padding: 24px 22px 28px;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform var(--dur-slow) var(--ease-out);
+}
+.bug-panel.is-open .bug-panel-sheet{ transform: none; }
+.bug-panel-header{
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.bug-panel-kicker{
+  color: var(--fg-3);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+}
+.bug-panel-title{
+  margin: 4px 0 0;
+  font-family: var(--font-sans);
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: var(--tracking-tight);
+  color: var(--fg-1);
+}
+.bug-panel-subtitle{
+  margin: 14px 0 0;
+  color: var(--fg-2);
+  font-size: 14px;
+  line-height: 1.55;
+}
+.bug-panel-meta{
+  margin-top: 14px;
+  padding: 10px 12px;
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--fg-3);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.bug-panel-form{
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+.bug-panel-label{
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--fg-1);
+  margin-bottom: 8px;
+}
+.bug-panel-textarea{
+  width: 100%;
+  flex: 1;
+  min-height: 160px;
+  resize: vertical;
+  border-radius: var(--r-md);
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--fg-1);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.55;
+  padding: 14px 14px;
+  outline: none;
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+.bug-panel-textarea:focus{
+  border-color: var(--gold);
+  box-shadow: var(--ring-gold);
+}
+.bug-panel-textarea::placeholder{ color: var(--fg-4); }
+.bug-panel-actions{
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+.bug-panel-status{
+  margin-top: 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.bug-panel-status.is-error{ color: var(--danger); }
+.bug-panel-status.is-ok{ color: var(--available-fg); }
+
 /* ---------- Mobile ---------- */
 @media (max-width: 640px){
   .shell{ padding: 10px 14px 14px; }
@@ -622,6 +753,9 @@ body{
   .composer-card{ margin-top: 24px; }
   .hero-examples{ margin-top: 18px; }
   .chip{ font-size: 13px; padding: 9px 15px; }
+  .icon-btn, .send-btn{ width: 40px; height: 40px; }
+  .composer{ gap: 8px; }
+  .bug-panel-sheet{ padding: 18px 16px 22px; }
 
   .chat.is-expanded,
   .chat.is-expanding{

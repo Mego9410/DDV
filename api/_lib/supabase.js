@@ -52,5 +52,27 @@ async function callRpc(fnName, body) {
   return text ? JSON.parse(text) : null;
 }
 
-module.exports = { fetchSecret, callRpc };
+async function insertRow(table, row) {
+  const url = SUPABASE_URL?.replace(/\/$/, "");
+  requireEnv("SUPABASE_URL", url);
+  const resp = await fetch(`${url}/rest/v1/${table}`, {
+    method: "POST",
+    headers: {
+      ...supabaseHeaders(),
+      "Content-Type": "application/json",
+      Prefer: "return=representation",
+    },
+    body: JSON.stringify(row),
+  });
+  const text = await resp.text();
+  if (!resp.ok) {
+    const err = new Error(text || `Supabase insert failed (${resp.status})`);
+    err.statusCode = 500;
+    throw err;
+  }
+  const data = text ? JSON.parse(text) : null;
+  return Array.isArray(data) ? data[0] ?? null : data;
+}
+
+module.exports = { fetchSecret, callRpc, insertRow };
 

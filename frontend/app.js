@@ -355,6 +355,148 @@ if (heroExamples) {
   });
 }
 
+// ---- Bug report side panel ----
+const bugPanel = el("bugPanel");
+const bugPanelBackdrop = el("bugPanelBackdrop");
+const bugPanelClose = el("bugPanelClose");
+const bugPanelCancel = el("bugPanelCancel");
+const bugPanelSubmit = el("bugPanelSubmit");
+const bugReportForm = el("bugReportForm");
+const bugDescription = el("bugDescription");
+const bugPanelStatus = el("bugPanelStatus");
+const bugPanelMeta = el("bugPanelMeta");
+const btnBugReport = el("btnBugReport");
+const btnBugReportChat = el("btnBugReportChat");
+
+let bugSnapshotThread = [];
+
+function turnCountLabel(n) {
+  if (n === 1) return "1 message";
+  return `${n} messages`;
+}
+
+function openBugPanel() {
+  bugSnapshotThread = Array.isArray(thread) ? thread.map((m) => ({ ...m })) : [];
+  const n = bugSnapshotThread.length;
+  if (bugPanelMeta) {
+    bugPanelMeta.textContent =
+      n > 0
+        ? `Chat snapshot ready · ${turnCountLabel(n)} will be attached`
+        : "No chat yet · you can still describe the issue";
+  }
+  if (bugDescription) bugDescription.value = "";
+  if (bugPanelStatus) {
+    bugPanelStatus.hidden = true;
+    bugPanelStatus.textContent = "";
+    bugPanelStatus.classList.remove("is-error", "is-ok");
+  }
+  if (bugPanelSubmit) bugPanelSubmit.disabled = false;
+  if (bugPanel) {
+    bugPanel.hidden = false;
+    bugPanel.setAttribute("aria-hidden", "false");
+    // Force layout so the open transition runs.
+    void bugPanel.offsetWidth;
+    bugPanel.classList.add("is-open");
+  }
+  setTimeout(() => bugDescription?.focus(), 80);
+}
+
+function closeBugPanel() {
+  if (!bugPanel) return;
+  bugPanel.classList.remove("is-open");
+  bugPanel.setAttribute("aria-hidden", "true");
+  setTimeout(() => {
+    if (!bugPanel.classList.contains("is-open")) bugPanel.hidden = true;
+  }, 320);
+}
+
+async function submitBugReport(description) {
+  const token = getToken();
+  const resp = await fetch(`${API_BASE}/api/bugs`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      description,
+      chat_thread: bugSnapshotThread,
+      user_agent: navigator.userAgent || "",
+      page_url: location.href || "",
+    }),
+  });
+  if (!resp.ok) {
+    const t = await resp.text();
+    if (resp.status === 401) {
+      const err = new Error(t || "Unauthorized");
+      err.authExpired = true;
+      err.statusCode = 401;
+      throw err;
+    }
+    let detail = t || `Submit failed (${resp.status})`;
+    try {
+      const parsed = JSON.parse(t);
+      if (parsed?.detail) detail = String(parsed.detail);
+    } catch (_) {}
+    throw new Error(detail);
+  }
+  return await resp.json();
+}
+
+async function onBugReportClick() {
+  await ensureAuthed();
+  if (!getToken()) return;
+  openBugPanel();
+}
+
+btnBugReport?.addEventListener("click", onBugReportClick);
+btnBugReportChat?.addEventListener("click", onBugReportClick);
+bugPanelClose?.addEventListener("click", closeBugPanel);
+bugPanelCancel?.addEventListener("click", closeBugPanel);
+bugPanelBackdrop?.addEventListener("click", closeBugPanel);
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && bugPanel?.classList.contains("is-open")) {
+    closeBugPanel();
+  }
+});
+
+bugReportForm?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const description = (bugDescription?.value || "").trim();
+  if (!description) return;
+
+  if (bugPanelStatus) {
+    bugPanelStatus.hidden = true;
+    bugPanelStatus.classList.remove("is-error", "is-ok");
+  }
+  if (bugPanelSubmit) bugPanelSubmit.disabled = true;
+
+  try {
+    await submitBugReport(description);
+    if (bugPanelStatus) {
+      bugPanelStatus.hidden = false;
+      bugPanelStatus.classList.add("is-ok");
+      bugPanelStatus.textContent = "Thanks — report submitted.";
+    }
+    setTimeout(() => closeBugPanel(), 900);
+  } catch (err) {
+    if (err?.authExpired) {
+      clearToken();
+      setLoggedInUI(false);
+      closeBugPanel();
+      await ensureAuthed();
+      return;
+    }
+    if (bugPanelStatus) {
+      bugPanelStatus.hidden = false;
+      bugPanelStatus.classList.add("is-error");
+      bugPanelStatus.textContent = String(err?.message || err || "Could not submit report.");
+    }
+    if (bugPanelSubmit) bugPanelSubmit.disabled = false;
+  }
+});
+
 // boot
 (async function init() {
   if (getToken()) {
