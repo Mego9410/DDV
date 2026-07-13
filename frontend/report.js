@@ -62,41 +62,129 @@
     return gbp.format(n);
   }
 
-  function formatPctDelta(pct) {
-    if (pct == null || !Number.isFinite(Number(pct))) return { text: "—", cls: "is-flat" };
-    const n = Number(pct);
-    if (Math.abs(n) < 0.05) return { text: "In line with median", cls: "is-flat" };
-    const abs = Math.abs(n).toFixed(1);
-    if (n > 0) return { text: `${abs}% higher than median`, cls: "is-above" };
-    return { text: `${abs}% lower than median`, cls: "is-below" };
+  // Direction of a % delta, reusing the report's green/red convention.
+  function benchDir(pct) {
+    if (pct == null || !Number.isFinite(Number(pct))) return "is-flat";
+    if (Math.abs(Number(pct)) < 0.05) return "is-flat";
+    return Number(pct) > 0 ? "is-above" : "is-below";
   }
 
-  // Deviation meter: median is the centre baseline, your value sits left
-  // (below) or right (above). Magnitude is clamped so extreme outliers stay
-  // on-scale; the exact % is always shown in text beneath.
-  const METER_CAP = 60; // percent mapped to the edge of the track
-  function buildMeter(pct, cls) {
-    let offset = 0; // -50..50, share of the half-track
-    if (pct != null && Number.isFinite(Number(pct))) {
-      const clamped = Math.max(-METER_CAP, Math.min(METER_CAP, Number(pct)));
-      offset = (clamped / METER_CAP) * 50;
+  function benchArrow(cls) {
+    return cls === "is-above" ? "▲" : cls === "is-below" ? "▼" : "■";
+  }
+
+  function benchColour(cls) {
+    return cls === "is-above"
+      ? "var(--available-fg)"
+      : cls === "is-below"
+      ? "var(--danger)"
+      : "var(--fg-3)";
+  }
+
+  function signedPct(pct) {
+    if (pct == null || !Number.isFinite(Number(pct))) return "—";
+    const n = Number(pct);
+    if (Math.abs(n) < 0.05) return "In line";
+    return `${n > 0 ? "+" : ""}${n.toFixed(1)}%`;
+  }
+
+  // Position line: your value and the peer medians plotted on one shared
+  // pounds axis. Distance is literal and uncapped, so how far above (or below)
+  // a median you sit is drawn to scale. Colour keeps the green-above /
+  // red-below convention, driven by the local comparison (national if local
+  // is suppressed).
+  function buildPositionLine(row) {
+    const you = Number(row.your_value);
+    const nat =
+      row.national && row.national.median != null ? Number(row.national.median) : null;
+    const hasLocal = !row.local_suppressed && row.local && row.local.median != null;
+    const loc = hasLocal ? Number(row.local.median) : null;
+
+    const pts = [you, nat, loc].filter((v) => v != null && Number.isFinite(v));
+    let min = Math.min(...pts);
+    let max = Math.max(...pts);
+    let pad = (max - min) * 0.12;
+    if (!(pad > 0)) pad = (Math.abs(max) || 1) * 0.1;
+    min -= pad;
+    max += pad;
+    const span = max - min || 1;
+    const x = (v) => ((v - min) / span) * 100;
+
+    const dir = benchDir(hasLocal ? row.pct_vs_local : row.pct_vs_national);
+    const natDir = benchDir(row.pct_vs_national);
+    const locDir = benchDir(row.pct_vs_local);
+
+    const xYou = x(you);
+    const barAnchor = hasLocal ? loc : nat;
+    const barL = barAnchor != null ? Math.min(x(barAnchor), xYou) : xYou;
+    const barW = barAnchor != null ? Math.abs(xYou - x(barAnchor)) : 0;
+    const youLab =
+      xYou >= 55
+        ? `right:${(100 - xYou).toFixed(1)}%;text-align:right`
+        : `left:${xYou.toFixed(1)}%;transform:translateX(-50%)`;
+
+    let ticks = "";
+    if (nat != null) {
+      ticks += `<span class="bench-tick" style="left:${x(nat)}%"></span>`;
+      ticks += `<span class="bench-tlabel" style="left:${x(nat)}%">National</span>`;
     }
-    const you = Math.max(2, Math.min(98, 50 + offset));
-    let fill;
-    if (offset > 0.4) {
-      fill = `left:50%;width:${(you - 50).toFixed(2)}%`;
-    } else if (offset < -0.4) {
-      fill = `left:${you.toFixed(2)}%;width:${(50 - you).toFixed(2)}%`;
+    if (hasLocal) {
+      ticks += `<span class="bench-tick loc" style="left:${x(loc)}%"></span>`;
+      ticks += `<span class="bench-tlabel below" style="left:${x(loc)}%">Local</span>`;
+    }
+
+    let chips = "";
+    if (nat != null) {
+      chips += `<span class="bench-chip ${natDir}"><span class="ar">${benchArrow(
+        natDir
+      )}</span>${signedPct(row.pct_vs_national)} vs national</span>`;
+    }
+    if (hasLocal) {
+      chips += `<span class="bench-chip ${locDir}"><span class="ar">${benchArrow(
+        locDir
+      )}</span>${signedPct(row.pct_vs_local)} vs local</span>`;
     } else {
-      fill = `left:50%;width:0%`;
+      chips += `<span class="bench-chip is-muted">Not enough local peers to compare</span>`;
     }
+
+    let legend = `<span class="bench-key"><i style="background:${benchColour(
+      dir
+    )}"></i> You <b>${formatMoney(you, row.id)}</b></span>`;
+    if (hasLocal) {
+      legend += `<span class="bench-key"><i class="tick" style="background:var(--fg-1)"></i> Local median <b>${formatMoney(
+        loc,
+        row.id
+      )}</b></span>`;
+    }
+    if (nat != null) {
+      legend += `<span class="bench-key"><i class="tick" style="background:var(--fg-3)"></i> National median <b>${formatMoney(
+        nat,
+        row.id
+      )}</b></span>`;
+    }
+    if (row.national_same_size && row.national_same_size.median != null) {
+      legend += `<span>Same-size <b>${formatMoney(
+        row.national_same_size.median,
+        row.id
+      )}</b></span>`;
+    }
+
     return `
-      <div class="bench-meter" role="img" aria-hidden="true">
-        <div class="bench-track">
-          <span class="bench-fill ${cls}" style="${fill}"></span>
-          <span class="bench-you ${cls}" style="left:${you.toFixed(2)}%"></span>
+      <div class="bench">
+        <div class="bench-axis">
+          <span class="bench-linebg"></span>
+          <span class="bench-bar ${dir}" style="left:${barL.toFixed(1)}%;width:${barW.toFixed(
+      1
+    )}%"></span>
+          ${ticks}
+          <span class="bench-you ${dir}" style="left:${xYou.toFixed(1)}%"></span>
+          <span class="bench-youlab" style="${youLab}">You <strong>${formatMoney(
+      you,
+      row.id
+    )}</strong></span>
         </div>
-        <div class="bench-scale"><span>Below</span><span>Median</span><span>Above</span></div>
+        <div class="bench-foot">${chips}</div>
+        <div class="bench-legend">${legend}</div>
       </div>`;
   }
 
@@ -366,58 +454,8 @@
       head.appendChild(label);
       head.appendChild(yours);
 
-      const compare = document.createElement("div");
-      compare.className = "report-compare";
-
-      const natDelta = formatPctDelta(row.pct_vs_national);
-      const natBlock = document.createElement("div");
-      natBlock.className = `compare-block ${natDelta.cls}`;
-      natBlock.innerHTML = `
-        <div class="compare-head">
-          <span class="compare-label">National median</span>
-          <span class="compare-median">${formatMoney(row.national?.median, row.id)}</span>
-        </div>
-        ${buildMeter(row.pct_vs_national, natDelta.cls)}
-        <div class="compare-delta ${natDelta.cls}">${natDelta.text}</div>
-      `;
-
-      const locBlock = document.createElement("div");
-      if (row.local_suppressed || !row.local) {
-        locBlock.className = "compare-block";
-        locBlock.innerHTML = `
-          <div class="compare-head">
-            <span class="compare-label">Local peers</span>
-          </div>
-          <p class="compare-note">Not enough local peers with this figure to compare.</p>
-        `;
-      } else {
-        const locDelta = formatPctDelta(row.pct_vs_local);
-        locBlock.className = `compare-block ${locDelta.cls}`;
-        locBlock.innerHTML = `
-          <div class="compare-head">
-            <span class="compare-label">Local peer median</span>
-            <span class="compare-median">${formatMoney(row.local?.median, row.id)}</span>
-          </div>
-          ${buildMeter(row.pct_vs_local, locDelta.cls)}
-          <div class="compare-delta ${locDelta.cls}">${locDelta.text}</div>
-        `;
-      }
-
-      compare.appendChild(natBlock);
-      compare.appendChild(locBlock);
-
       el.appendChild(head);
-      el.appendChild(compare);
-
-      if (row.national_same_size?.median != null) {
-        const same = document.createElement("div");
-        same.className = "report-same-size";
-        same.innerHTML = `National same-size median: <strong>${formatMoney(
-          row.national_same_size.median,
-          row.id
-        )}</strong>`;
-        el.appendChild(same);
-      }
+      el.insertAdjacentHTML("beforeend", buildPositionLine(row));
 
       reportRows.appendChild(el);
     });
