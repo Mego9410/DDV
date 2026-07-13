@@ -9,7 +9,6 @@ const METRICS = [
   { id: "hygiene", label: "Hygienist", unit: "gbp", column: "cert_hygiene_gbp", group: "costs" },
   { id: "materials", label: "Materials", unit: "gbp", column: "cert_materials_gbp", group: "costs" },
   { id: "labs", label: "Laboratory", unit: "gbp", column: "cert_labs_gbp", group: "costs" },
-  { id: "associate_cost", label: "Modelled associate cost", unit: "gbp", column: "associate_cost_amount", group: "costs" },
 ];
 
 const SURGERY_COUNTS = [
