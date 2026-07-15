@@ -77,8 +77,8 @@ body.report-page {
 
 .report-title {
   margin: 20px 0 0;
-  font-family: var(--font-serif);
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-weight: 800;
   font-size: clamp(34px, 5.4vw, 56px);
   line-height: 1.06;
   letter-spacing: var(--tracking-tight);
@@ -121,9 +121,9 @@ body.report-page {
   place-items: center;
   border: 1.5px solid var(--gold);
   color: var(--gold-deep);
-  font-family: var(--font-serif);
+  font-family: var(--font-display);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 /* ---------- Form panel ---------- */
@@ -168,8 +168,8 @@ body.report-page {
   place-items: center;
   background: var(--ink);
   color: var(--gold);
-  font-family: var(--font-serif);
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-weight: 800;
   font-size: 17px;
 }
 
@@ -269,9 +269,9 @@ body.report-page {
 
 .report-gate-title {
   margin: 0;
-  font-family: var(--font-serif);
+  font-family: var(--font-display);
   font-size: clamp(24px, 3.4vw, 30px);
-  font-weight: 600;
+  font-weight: 800;
   color: var(--fg-1);
   line-height: 1.2;
 }
@@ -597,9 +597,9 @@ body.report-page {
 
 .report-output-title {
   margin: 0;
-  font-family: var(--font-serif);
+  font-family: var(--font-display);
   font-size: clamp(26px, 3.6vw, 36px);
-  font-weight: 600;
+  font-weight: 800;
   letter-spacing: var(--tracking-snug);
   color: var(--fg-1);
 }
@@ -704,9 +704,9 @@ body.report-page {
 }
 
 .report-row-label {
-  font-family: var(--font-serif);
+  font-family: var(--font-display);
   font-size: 21px;
-  font-weight: 600;
+  font-weight: 800;
   letter-spacing: var(--tracking-snug);
   color: var(--fg-1);
 }
