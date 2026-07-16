@@ -4,35 +4,19 @@ const { mintAccessToken } = require("../_lib/token");
 
 const ACCESS_TOKEN_SECRET = (process.env.ACCESS_TOKEN_SECRET || "").trim() || "ddv-dev-access-token-secret";
 const ACCESS_TOKEN_TTL_SECONDS = Number(process.env.ACCESS_TOKEN_TTL_SECONDS || 1800);
-const DEFAULT_SHARED_PASSWORD = "password";
 const SUPABASE_SHARED_PASSWORD_KEY = process.env.SUPABASE_SHARED_PASSWORD_KEY || "shared_password_hash";
-const PASSWORD_BCRYPT = "$2a$10$Z8uxdQ2GCBD7fn80Mc3OCuWiiWkOPFADCSgho4UFN5xSb60p.r8b6";
 
-function normalizePlain(value) {
-  if (value == null) return null;
-  let s = String(value).trim();
-  if (!s) return null;
-  if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
-    s = s.slice(1, -1).trim();
-  }
-  return s || null;
-}
-
-function plainCandidates() {
-  const out = new Set();
-  const envPlain = normalizePlain(process.env.SHARED_PASSWORD_PLAIN);
-  if (envPlain) out.add(envPlain);
-  out.add(DEFAULT_SHARED_PASSWORD);
-  return [...out];
-}
-
+// The password is stored only as a bcrypt hash in Supabase app_secrets
+// (key: shared_password_hash). No plaintext or hash lives in the code.
+// SHARED_PASSWORD_HASH is an optional env break-glass (a bcrypt hash, not
+// plaintext) for the rare case the secrets table is unreachable.
 async function isPasswordValid(password) {
   const trimmed = String(password ?? "").trim();
   if (!trimmed) return false;
 
-  if (plainCandidates().some((candidate) => trimmed === candidate)) return true;
-
-  const hashes = new Set([PASSWORD_BCRYPT]);
+  const hashes = new Set();
+  const envHash = (process.env.SHARED_PASSWORD_HASH || "").trim();
+  if (envHash) hashes.add(envHash);
   const storedHash = await fetchSecret(SUPABASE_SHARED_PASSWORD_KEY);
   if (storedHash) hashes.add(storedHash);
 
