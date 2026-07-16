@@ -4,7 +4,13 @@
 //   localStorage.setItem("DDV_API_BASE", "http://localhost:8000"); location.reload();
 const OVERRIDE_API_BASE = localStorage.getItem("DDV_API_BASE");
 const DEFAULT_LOCAL_API = "http://localhost:8010";
-const API_BASE = ((OVERRIDE_API_BASE ?? (location.hostname.endsWith("vercel.app") ? "" : DEFAULT_LOCAL_API)) || "")
+// Only fall back to the local dev API when actually running on localhost.
+// Any deployed host (vercel.app, preview URLs, custom domains) uses the
+// same-origin /api serverless routes.
+const IS_LOCALHOST =
+  ["localhost", "127.0.0.1", "0.0.0.0", "[::1]"].includes(location.hostname) ||
+  location.hostname.endsWith(".local");
+const API_BASE = ((OVERRIDE_API_BASE ?? (IS_LOCALHOST ? DEFAULT_LOCAL_API : "")) || "")
   .replace(/\/$/, "");
 const TOKEN_KEY = "DDV_ACCESS_TOKEN";
 
