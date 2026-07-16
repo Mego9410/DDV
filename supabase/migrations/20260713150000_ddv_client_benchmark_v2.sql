@@ -1,56 +1,19 @@
--- ============================================================
--- Client benchmark v2 — fairer peer selection.
+-- Client benchmark, reconciled.
 --
--- Fixes the "average practice reads as far above median" problem:
---   1. National comparison is SIZE-MATCHED (same surgery band),
---      widening the band only if needed, else all practices.
---   2. Each metric finds its OWN local pool, widening surgery band
---      then distance (25 -> 50 -> 100 -> 150 miles), stopping as soon
---      as there are enough comparable practices. One sparse line (e.g.
---      NHS income in a private-heavy area) no longer drags every other
---      line's geography wider.
---   3. A real minimum sample (TARGET_N) is targeted; a local pool still
---      too thin at 150 miles is suppressed (the size-matched national
---      still carries the line) rather than shown as fact or relabelled.
---   4. Per-metric sanity bounds drop obvious data errors before the
---      median (e.g. a UDA rate of £1,102, a £ total under £250).
+-- Builds on 20260713140000 (expand_radius): keeps the per-metric local
+-- ladder (place -> widening radius -> national same-size) so a client is
+-- never stranded on "not enough local peers", and adds two fixes:
 --
--- Aggregate-only. Returns medians and deltas; never sample counts,
--- pool footnotes or practice rows (client view stays clean).
--- ============================================================
-
--- Internal helper: median + count for one column under an arbitrary,
--- already-safe WHERE clause. Not granted to callers directly; only the
--- SECURITY DEFINER benchmark function below calls it.
-create or replace function public.ddv_pool_stat(p_col text, p_where text, p_lo numeric, p_hi numeric)
-returns table(n bigint, med numeric)
-language plpgsql
-stable
-security definer
-set search_path = public
-as $$
-begin
-  -- p_lo/p_hi are per-metric sanity bounds: values outside them are
-  -- treated as data errors and excluded before taking the median.
-  -- percentile_cont returns double precision (numeric inputs are cast to
-  -- double), so cast back to numeric to match the declared return type.
-  return query execute format(
-    $q$
-      select
-        count(%1$I)::bigint,
-        (percentile_cont(0.5) within group (order by %1$I))::numeric
-      from public.practices
-      where (%2$s)
-        and %1$I is not null
-        and %1$I >= %3$s and %1$I <= %4$s
-    $q$,
-    p_col, p_where, p_lo, p_hi
-  );
-end;
-$$;
-
-revoke all on function public.ddv_pool_stat(text, text, numeric, numeric) from public;
-revoke all on function public.ddv_pool_stat(text, text, numeric, numeric) from anon, authenticated;
+--   1. SIZE-MATCHED national. The national headline is compared against
+--      practices of a similar size (widening the surgery band only if the
+--      exact size is thin, then all sizes as a last resort) instead of the
+--      whole population. An average multi-surgery practice no longer reads
+--      as far above a median dominated by single-surgery practices.
+--   2. OUTLIER GUARDS. Per-metric sanity bounds exclude obvious data errors
+--      before every median (e.g. a UDA rate of £1,102, a £ total under £250).
+--
+-- This function is timestamped after 140000 so it is the final definition.
+-- Aggregate-only: returns medians and deltas, never sample counts.
 
 create or replace function public.ddv_client_benchmark(payload jsonb)
 returns jsonb
@@ -59,57 +22,71 @@ security definer
 set search_path = public
 as $$
 declare
-  -- Tunables. Adjust after reviewing the data audit.
-  TARGET_N   constant int := 20;  -- widen the pool until at least this many peers
-  MIN_SHOW_N constant int := 8;   -- below this, suppress rather than show a noisy median
-
   v_location text := btrim(coalesce(payload->>'location', ''));
-  v_surgery  int  := nullif(payload->>'surgery_count', '')::int;
-  v_lat      double precision := nullif(payload->>'lat', '')::double precision;
-  v_lng      double precision := nullif(payload->>'lng', '')::double precision;
-  v_metrics  jsonb := coalesce(payload->'metrics', '[]'::jsonb);
+  v_surgery int := nullif(payload->>'surgery_count', '')::int;
+  v_lat double precision := nullif(payload->>'lat', '')::double precision;
+  v_lng double precision := nullif(payload->>'lng', '')::double precision;
+  v_metrics jsonb := coalesce(payload->'metrics', '[]'::jsonb);
   v_is_13_plus boolean;
-  v_has_center boolean := false;
+
+  -- Minimum peers required to show a local median.
+  c_min_n constant bigint := 5;
+  -- Target sample for a size-matched national median before widening.
+  c_nat_target constant bigint := 20;
 
   v_metric jsonb;
   v_id text;
   v_col text;
   v_your numeric;
 
-  v_lo numeric;  -- per-metric lower sanity bound
-  v_hi numeric;  -- per-metric upper sanity bound
+  -- per-metric sanity bounds (outlier guards)
+  v_lo numeric;
+  v_hi numeric;
+
+  v_step int;
+  v_best_step int := 1;
+  v_mode text;
+  v_surg_min int;
+  v_surg_max int;
+  v_radius_miles double precision;
+  v_center geography(Point,4326);
+
   v_where text;
-  v_geo text;
+  v_sql text;
   v_n bigint;
-  v_med numeric;
+  v_median numeric;
+  v_min_n bigint;
+  v_all_displayable boolean;
 
-  -- national (size-matched) result
-  nat_med numeric;
-  nat_n bigint;
-  nat_basis text;
+  v_geo_missing bigint := 0;
+  v_geo_unresolved boolean := false;
 
-  -- local (per-metric) result
-  loc_med numeric;
-  loc_n bigint;
-  loc_basis text;
-  best_med numeric;
-  best_n bigint;
-  best_basis text;
+  metric_results jsonb := '[]'::jsonb;
+  national_medians jsonb := '{}'::jsonb;
+  national_ns jsonb := '{}'::jsonb;
+  same_size_medians jsonb := '{}'::jsonb;
+  same_size_ns jsonb := '{}'::jsonb;
+  local_medians jsonb := '{}'::jsonb;
+  local_ns jsonb := '{}'::jsonb;
 
+  step_local_medians jsonb;
+  step_local_ns jsonb;
+
+  cohort_label text;
+  surg_label text;
   pct_nat numeric;
   pct_loc numeric;
   local_suppressed boolean;
-
-  metric_results jsonb := '[]'::jsonb;
+  local_obj jsonb;
   row_obj jsonb;
 
-  -- ladder step config
-  step int;
-  s_mode text;
-  s_lo int;
-  s_hi int;
-  s_radius double precision;
-  s_found boolean;
+  final_surg_min int;
+  final_surg_max int;
+  final_mode text;
+  final_radius double precision;
+
+  -- Max expansion steps (place bands + radii + national same-size fallback)
+  c_max_step constant int := 14;
 begin
   if v_location = '' then
     raise exception 'location is required';
@@ -126,11 +103,9 @@ begin
 
   v_is_13_plus := v_surgery >= 13;
 
-  v_has_center :=
-    v_lat is not null and v_lng is not null
-    and v_lat = v_lat and v_lng = v_lng
-    and v_lat between -90 and 90 and v_lng between -180 and 180;
-
+  -- ---------------------------------------------------------------
+  -- NATIONAL, size-matched + guarded.
+  -- ---------------------------------------------------------------
   for v_metric in select * from jsonb_array_elements(v_metrics)
   loop
     v_id := lower(btrim(coalesce(v_metric->>'id', '')));
@@ -147,7 +122,6 @@ begin
       raise exception 'value required for metric %', v_id;
     end if;
 
-    -- Per-metric sanity bounds: drop obvious data errors before the median.
     -- UDA rate is a per-UDA rate (~£15-40), not a £ total.
     if v_id = 'uda_rate' then
       v_lo := 5; v_hi := 150;
@@ -155,132 +129,363 @@ begin
       v_lo := 250; v_hi := 25000000;
     end if;
 
-    -- ---------------------------------------------------------
-    -- NATIONAL, size-matched: widen the surgery band until we have
-    -- enough, else fall back to all practices.
-    -- ---------------------------------------------------------
-    nat_med := null; nat_n := 0; nat_basis := null; s_found := false;
-    for step in 1..4 loop
+    v_median := null;
+    v_n := 0;
+    -- Widen the surgery band until the size-matched pool is big enough.
+    for v_step in 1..4 loop
       if v_is_13_plus then
-        -- 13+ is already an open band; treat as one bucket
-        s_lo := greatest(1, 13 - (step - 1)); s_hi := 50;
+        v_surg_min := greatest(1, 13 - (v_step - 1));
+        v_surg_max := 50;
       else
-        s_lo := greatest(1, v_surgery - (step - 1));
-        s_hi := least(50, v_surgery + (step - 1));
+        v_surg_min := greatest(1, v_surgery - (v_step - 1));
+        v_surg_max := least(50, v_surgery + (v_step - 1));
       end if;
-      v_where := format('surgery_count between %s and %s', s_lo, s_hi);
-      select n, med into v_n, v_med from public.ddv_pool_stat(v_col, v_where, v_lo, v_hi);
-      if v_med is not null and (nat_med is null or v_n > nat_n) then
-        nat_med := v_med; nat_n := v_n;
-        nat_basis := case when s_lo = s_hi
-          then format('%s-surgery practices nationally', s_lo)
-          else format('%s-%s surgery practices nationally', s_lo, s_hi) end;
-      end if;
-      if v_n >= TARGET_N then s_found := true; exit; end if;
+      execute format(
+        $q$
+          select count(%1$I)::bigint,
+                 percentile_cont(0.5) within group (order by %1$I)
+          from public.practices
+          where surgery_count between %2$s and %3$s
+            and %1$I is not null and %1$I >= %4$s and %1$I <= %5$s
+        $q$,
+        v_col, v_surg_min, v_surg_max, v_lo, v_hi
+      ) into v_n, v_median;
+      exit when v_median is not null and v_n >= c_nat_target;
     end loop;
-    if not s_found then
-      -- all practices, any size
-      select n, med into v_n, v_med from public.ddv_pool_stat(v_col, 'true', v_lo, v_hi);
-      if v_med is not null and (nat_med is null or v_n >= nat_n) then
-        nat_med := v_med; nat_n := v_n; nat_basis := 'all practices nationally';
-      end if;
+
+    -- Last resort: all sizes (still guarded) if size-matched stays thin.
+    if v_median is null or v_n < c_nat_target then
+      execute format(
+        $q$
+          select count(%1$I)::bigint,
+                 percentile_cont(0.5) within group (order by %1$I)
+          from public.practices
+          where %1$I is not null and %1$I >= %2$s and %1$I <= %3$s
+        $q$,
+        v_col, v_lo, v_hi
+      ) into v_n, v_median;
     end if;
 
-    -- ---------------------------------------------------------
-    -- LOCAL, per-metric ladder. Stop at the first step with enough
-    -- peers; otherwise keep the widest (largest n) step seen.
-    -- ---------------------------------------------------------
-    -- Local stays GEOGRAPHIC: widen surgery band, then distance out to
-    -- 150 miles. If it is still too thin, suppress it — the size-matched
-    -- national comparison still carries the line. We never relabel a
-    -- national pool as "local".
-    loc_med := null; loc_n := 0; loc_basis := null;
-    best_med := null; best_n := -1; best_basis := null; s_found := false;
+    national_medians := national_medians || jsonb_build_object(v_id, v_median);
+    national_ns := national_ns || jsonb_build_object(v_id, v_n);
+  end loop;
 
-    for step in 1..7 loop
-      -- resolve step -> (mode, surgery band, radius)
-      if v_is_13_plus then
-        case step
-          when 1 then s_mode:='place';  s_lo:=13; s_hi:=50; s_radius:=null;
-          when 2 then s_mode:='place';  s_lo:=12; s_hi:=50; s_radius:=null;
-          when 3 then s_mode:='place';  s_lo:=11; s_hi:=50; s_radius:=null;
-          when 4 then s_mode:='radius'; s_lo:=12; s_hi:=50; s_radius:=25;
-          when 5 then s_mode:='radius'; s_lo:=11; s_hi:=50; s_radius:=50;
-          when 6 then s_mode:='radius'; s_lo:=11; s_hi:=50; s_radius:=100;
-          else        s_mode:='radius'; s_lo:=11; s_hi:=50; s_radius:=150;
-        end case;
-      else
-        case step
-          when 1 then s_mode:='place';  s_lo:=v_surgery;                 s_hi:=v_surgery;                 s_radius:=null;
-          when 2 then s_mode:='place';  s_lo:=greatest(1,v_surgery-1);   s_hi:=least(50,v_surgery+1);     s_radius:=null;
-          when 3 then s_mode:='place';  s_lo:=greatest(1,v_surgery-2);   s_hi:=least(50,v_surgery+2);     s_radius:=null;
-          when 4 then s_mode:='radius'; s_lo:=greatest(1,v_surgery-1);   s_hi:=least(50,v_surgery+1);     s_radius:=25;
-          when 5 then s_mode:='radius'; s_lo:=greatest(1,v_surgery-2);   s_hi:=least(50,v_surgery+2);     s_radius:=50;
-          when 6 then s_mode:='radius'; s_lo:=greatest(1,v_surgery-2);   s_hi:=least(50,v_surgery+2);     s_radius:=100;
-          else        s_mode:='radius'; s_lo:=greatest(1,v_surgery-2);   s_hi:=least(50,v_surgery+2);     s_radius:=150;
-        end case;
-      end if;
+  if v_lat is not null and v_lng is not null
+     and v_lat = v_lat and v_lng = v_lng
+     and v_lat between -90 and 90 and v_lng between -180 and 180 then
+    v_center := st_setsrid(st_makepoint(v_lng, v_lat), 4326)::geography;
+  else
+    v_geo_unresolved := true;
+    v_center := null;
+  end if;
 
-      -- radius steps need a geocoded centre
-      if s_mode = 'radius' and not v_has_center then
-        continue;
-      end if;
-
-      if s_mode = 'place' then
-        v_where := format(
-          $w$ ( lower(btrim(coalesce(city,''))) = lower(%L)
-                or lower(btrim(coalesce(county,''))) = lower(%L) )
-              and surgery_count between %s and %s $w$,
-          v_location, v_location, s_lo, s_hi
-        );
-      else -- 'radius'
-        v_where := format(
-          $w$ geog is not null
-              and st_dwithin(geog, st_setsrid(st_makepoint(%s, %s), 4326)::geography, %s * 1609.344)
-              and surgery_count between %s and %s $w$,
-          v_lng, v_lat, s_radius, s_lo, s_hi
-        );
-      end if;
-
-      select n, med into v_n, v_med from public.ddv_pool_stat(v_col, v_where, v_lo, v_hi);
-
-      if v_med is not null and v_n > best_n then
-        best_med := v_med; best_n := v_n;
-        best_basis := case s_mode
-          when 'place'  then format('in %s', v_location)
-          else format('within %s miles of %s', s_radius::int, v_location)
-        end;
-      end if;
-
-      if v_n >= TARGET_N then s_found := true; exit; end if;
-    end loop;
-
-    if best_n >= MIN_SHOW_N then
-      loc_med := best_med; loc_n := best_n; loc_basis := best_basis;
-      local_suppressed := false;
+  -- ---------------------------------------------------------------
+  -- LOCAL ladder: place -> widening radius -> national same-size.
+  -- ---------------------------------------------------------------
+  for v_step in 1..c_max_step loop
+    if v_is_13_plus then
+      case v_step
+        when 1 then v_mode := 'place';  v_surg_min := 13; v_surg_max := 50; v_radius_miles := null;
+        when 2 then v_mode := 'place';  v_surg_min := 12; v_surg_max := 50; v_radius_miles := null;
+        when 3 then v_mode := 'place';  v_surg_min := 11; v_surg_max := 50; v_radius_miles := null;
+        when 4 then v_mode := 'radius'; v_surg_min := 12; v_surg_max := 50; v_radius_miles := 25;
+        when 5 then v_mode := 'radius'; v_surg_min := 11; v_surg_max := 50; v_radius_miles := 50;
+        when 6 then v_mode := 'radius'; v_surg_min := 11; v_surg_max := 50; v_radius_miles := 75;
+        when 7 then v_mode := 'radius'; v_surg_min := 11; v_surg_max := 50; v_radius_miles := 100;
+        when 8 then v_mode := 'radius'; v_surg_min := 11; v_surg_max := 50; v_radius_miles := 150;
+        when 9 then v_mode := 'radius'; v_surg_min := 11; v_surg_max := 50; v_radius_miles := 200;
+        when 10 then v_mode := 'radius'; v_surg_min := 1; v_surg_max := 50; v_radius_miles := 100;
+        when 11 then v_mode := 'radius'; v_surg_min := 1; v_surg_max := 50; v_radius_miles := 150;
+        when 12 then v_mode := 'radius'; v_surg_min := 1; v_surg_max := 50; v_radius_miles := 200;
+        when 13 then v_mode := 'radius'; v_surg_min := 1; v_surg_max := 50; v_radius_miles := 300;
+        else
+          v_mode := 'same_size';
+          v_surg_min := 11;
+          v_surg_max := 50;
+          v_radius_miles := null;
+      end case;
     else
-      local_suppressed := true;
+      case v_step
+        when 1 then
+          v_mode := 'place';
+          v_surg_min := v_surgery;
+          v_surg_max := v_surgery;
+          v_radius_miles := null;
+        when 2 then
+          v_mode := 'place';
+          v_surg_min := greatest(1, v_surgery - 1);
+          v_surg_max := least(50, v_surgery + 1);
+          v_radius_miles := null;
+        when 3 then
+          v_mode := 'place';
+          v_surg_min := greatest(1, v_surgery - 2);
+          v_surg_max := least(50, v_surgery + 2);
+          v_radius_miles := null;
+        when 4 then
+          v_mode := 'radius';
+          v_surg_min := greatest(1, v_surgery - 1);
+          v_surg_max := least(50, v_surgery + 1);
+          v_radius_miles := 25;
+        when 5 then
+          v_mode := 'radius';
+          v_surg_min := greatest(1, v_surgery - 2);
+          v_surg_max := least(50, v_surgery + 2);
+          v_radius_miles := 50;
+        when 6 then
+          v_mode := 'radius';
+          v_surg_min := greatest(1, v_surgery - 2);
+          v_surg_max := least(50, v_surgery + 2);
+          v_radius_miles := 75;
+        when 7 then
+          v_mode := 'radius';
+          v_surg_min := greatest(1, v_surgery - 2);
+          v_surg_max := least(50, v_surgery + 2);
+          v_radius_miles := 100;
+        when 8 then
+          v_mode := 'radius';
+          v_surg_min := greatest(1, v_surgery - 2);
+          v_surg_max := least(50, v_surgery + 2);
+          v_radius_miles := 150;
+        when 9 then
+          v_mode := 'radius';
+          v_surg_min := greatest(1, v_surgery - 2);
+          v_surg_max := least(50, v_surgery + 2);
+          v_radius_miles := 200;
+        when 10 then
+          v_mode := 'radius';
+          v_surg_min := 1;
+          v_surg_max := 50;
+          v_radius_miles := 100;
+        when 11 then
+          v_mode := 'radius';
+          v_surg_min := 1;
+          v_surg_max := 50;
+          v_radius_miles := 150;
+        when 12 then
+          v_mode := 'radius';
+          v_surg_min := 1;
+          v_surg_max := 50;
+          v_radius_miles := 200;
+        when 13 then
+          v_mode := 'radius';
+          v_surg_min := 1;
+          v_surg_max := 50;
+          v_radius_miles := 300;
+        else
+          v_mode := 'same_size';
+          v_surg_min := greatest(1, v_surgery - 2);
+          v_surg_max := least(50, v_surgery + 2);
+          v_radius_miles := null;
+      end case;
     end if;
 
-    -- ---------------------------------------------------------
-    -- deltas
-    -- ---------------------------------------------------------
+    if v_mode = 'radius' and v_center is null then
+      continue;
+    end if;
+
+    if v_mode = 'place' then
+      v_where := format(
+        $w$
+          (
+            lower(btrim(coalesce(city, ''))) = lower(%L)
+            or lower(btrim(coalesce(county, ''))) = lower(%L)
+          )
+          and surgery_count between %s and %s
+        $w$,
+        v_location, v_location, v_surg_min, v_surg_max
+      );
+    elsif v_mode = 'radius' then
+      v_where := format(
+        $w$
+          geog is not null
+          and st_dwithin(
+            geog,
+            st_setsrid(st_makepoint(%s, %s), 4326)::geography,
+            %s * 1609.344
+          )
+          and surgery_count between %s and %s
+        $w$,
+        v_lng, v_lat, v_radius_miles, v_surg_min, v_surg_max
+      );
+    else
+      v_where := format(
+        $w$
+          surgery_count between %s and %s
+        $w$,
+        v_surg_min, v_surg_max
+      );
+    end if;
+
+    step_local_medians := '{}'::jsonb;
+    step_local_ns := '{}'::jsonb;
+    v_all_displayable := true;
+    v_min_n := null;
+
+    for v_metric in select * from jsonb_array_elements(v_metrics)
+    loop
+      v_id := lower(btrim(coalesce(v_metric->>'id', '')));
+      v_col := public.ddv_client_metric_column(v_id);
+      if v_id = 'uda_rate' then v_lo := 5; v_hi := 150; else v_lo := 250; v_hi := 25000000; end if;
+
+      v_sql := format(
+        $q$
+          select
+            count(%1$I)::bigint,
+            percentile_cont(0.5) within group (order by %1$I)
+          from public.practices
+          where (%2$s)
+            and %1$I is not null and %1$I >= %3$s and %1$I <= %4$s
+        $q$,
+        v_col,
+        v_where,
+        v_lo,
+        v_hi
+      );
+      execute v_sql into v_n, v_median;
+      step_local_medians := step_local_medians || jsonb_build_object(v_id, v_median);
+      step_local_ns := step_local_ns || jsonb_build_object(v_id, v_n);
+
+      if v_min_n is null or v_n < v_min_n then
+        v_min_n := v_n;
+      end if;
+      if v_n < c_min_n then
+        v_all_displayable := false;
+      end if;
+    end loop;
+
+    local_medians := step_local_medians;
+    local_ns := step_local_ns;
+    final_surg_min := v_surg_min;
+    final_surg_max := v_surg_max;
+    final_mode := v_mode;
+    final_radius := v_radius_miles;
+    v_best_step := v_step;
+
+    if v_all_displayable then
+      exit;
+    end if;
+  end loop;
+
+  if final_mode is null then
+    final_mode := 'same_size';
+    final_surg_min := case when v_is_13_plus then 11 else greatest(1, v_surgery - 2) end;
+    final_surg_max := case when v_is_13_plus then 50 else least(50, v_surgery + 2) end;
+    final_radius := null;
+  end if;
+
+  if final_mode = 'radius' and v_center is not null then
+    select count(*)::bigint into v_geo_missing
+    from public.practices
+    where geog is null
+      and surgery_count between final_surg_min and final_surg_max;
+  end if;
+
+  -- National same-size medians for the final band (guarded).
+  for v_metric in select * from jsonb_array_elements(v_metrics)
+  loop
+    v_id := lower(btrim(coalesce(v_metric->>'id', '')));
+    v_col := public.ddv_client_metric_column(v_id);
+    if v_id = 'uda_rate' then v_lo := 5; v_hi := 150; else v_lo := 250; v_hi := 25000000; end if;
+    v_sql := format(
+      $q$
+        select
+          count(%1$I)::bigint,
+          percentile_cont(0.5) within group (order by %1$I)
+        from public.practices
+        where surgery_count between %2$s and %3$s
+          and %1$I is not null and %1$I >= %4$s and %1$I <= %5$s
+      $q$,
+      v_col, final_surg_min, final_surg_max, v_lo, v_hi
+    );
+    execute v_sql into v_n, v_median;
+    same_size_medians := same_size_medians || jsonb_build_object(v_id, v_median);
+    same_size_ns := same_size_ns || jsonb_build_object(v_id, v_n);
+  end loop;
+
+  -- Per-metric safety net: if still thin, use national same-size, then national.
+  for v_metric in select * from jsonb_array_elements(v_metrics)
+  loop
+    v_id := lower(btrim(coalesce(v_metric->>'id', '')));
+    v_n := coalesce((local_ns->>v_id)::bigint, 0);
+    if v_n < c_min_n then
+      local_medians := local_medians || jsonb_build_object(v_id, (same_size_medians->>v_id)::numeric);
+      local_ns := local_ns || jsonb_build_object(v_id, coalesce((same_size_ns->>v_id)::bigint, 0));
+    end if;
+    v_n := coalesce((local_ns->>v_id)::bigint, 0);
+    if v_n < c_min_n or (local_medians->>v_id) is null then
+      local_medians := local_medians || jsonb_build_object(v_id, (national_medians->>v_id)::numeric);
+      local_ns := local_ns || jsonb_build_object(v_id, coalesce((national_ns->>v_id)::bigint, 0));
+    end if;
+  end loop;
+
+  if final_surg_min = final_surg_max then
+    surg_label := format('%s surgery', final_surg_min);
+  elsif final_surg_max >= 50 and final_surg_min >= 11 then
+    surg_label := format('%s+ surgery', final_surg_min);
+  else
+    surg_label := format('%s–%s surgery', final_surg_min, final_surg_max);
+  end if;
+
+  if final_mode = 'radius' then
+    cohort_label := format(
+      '%s practices within %s miles of %s',
+      surg_label, final_radius::int, v_location
+    );
+  elsif final_mode = 'same_size' then
+    cohort_label := format('National %s peer group (local sample too thin)', surg_label);
+  else
+    cohort_label := format('%s practices in %s', surg_label, v_location);
+  end if;
+
+  for v_metric in select * from jsonb_array_elements(v_metrics)
+  loop
+    v_id := lower(btrim(coalesce(v_metric->>'id', '')));
+    v_your := (v_metric->>'value')::numeric;
+    v_n := coalesce((local_ns->>v_id)::bigint, 0);
+    local_suppressed := v_n < 1 or (local_medians->>v_id) is null;
+
     pct_nat := null;
-    if nat_med is not null and nat_med <> 0 then
-      pct_nat := round(((v_your - nat_med) / nat_med) * 100, 1);
+    if (national_medians->>v_id) is not null
+       and (national_medians->>v_id)::numeric <> 0 then
+      pct_nat := round(
+        ((v_your - (national_medians->>v_id)::numeric)
+          / (national_medians->>v_id)::numeric) * 100,
+        1
+      );
     end if;
 
     pct_loc := null;
-    if not local_suppressed and loc_med is not null and loc_med <> 0 then
-      pct_loc := round(((v_your - loc_med) / loc_med) * 100, 1);
+    if not local_suppressed
+       and (local_medians->>v_id) is not null
+       and (local_medians->>v_id)::numeric <> 0 then
+      pct_loc := round(
+        ((v_your - (local_medians->>v_id)::numeric)
+          / (local_medians->>v_id)::numeric) * 100,
+        1
+      );
+    end if;
+
+    if local_suppressed then
+      local_obj := null;
+    else
+      local_obj := jsonb_build_object(
+        'median', (local_medians->>v_id)::numeric,
+        'n', v_n
+      );
     end if;
 
     row_obj := jsonb_build_object(
       'id', v_id,
       'your_value', v_your,
-      'national', jsonb_build_object('median', nat_med, 'basis', nat_basis),
-      'local', case when local_suppressed then null
-                    else jsonb_build_object('median', loc_med, 'basis', loc_basis) end,
+      'national', jsonb_build_object(
+        'median', (national_medians->>v_id)::numeric,
+        'n', coalesce((national_ns->>v_id)::bigint, 0)
+      ),
+      'national_same_size', jsonb_build_object(
+        'median', (same_size_medians->>v_id)::numeric,
+        'n', coalesce((same_size_ns->>v_id)::bigint, 0)
+      ),
+      'local', local_obj,
       'pct_vs_national', pct_nat,
       'pct_vs_local', pct_loc,
       'local_suppressed', local_suppressed
@@ -291,8 +496,15 @@ begin
   return jsonb_build_object(
     'cohort', jsonb_build_object(
       'location', v_location,
+      'mode', final_mode,
+      'radius_miles', final_radius,
+      'surgery_min', final_surg_min,
+      'surgery_max', final_surg_max,
       'requested_surgery_count', v_surgery,
-      'label', format('Compared with similar-size practices near %s', v_location)
+      'expansion_step', v_best_step,
+      'label', cohort_label,
+      'geo_missing', v_geo_missing,
+      'geo_unresolved', v_geo_unresolved and final_mode = 'place'
     ),
     'metrics', metric_results
   );
@@ -300,7 +512,7 @@ end;
 $$;
 
 comment on function public.ddv_client_benchmark(jsonb) is
-  'Public client benchmark v2: size-matched national + per-metric widening local pools. Aggregate-only, no sample counts exposed.';
+  'Public client benchmark: size-matched + guarded national, plus per-metric local ladder (place -> radius -> national same-size). Aggregate-only.';
 
 revoke all on function public.ddv_client_benchmark(jsonb) from public;
 revoke all on function public.ddv_client_benchmark(jsonb) from anon, authenticated;
