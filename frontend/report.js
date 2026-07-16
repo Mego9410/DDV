@@ -88,49 +88,125 @@
     return `${n > 0 ? "+" : ""}${n.toFixed(1)}%`;
   }
 
-  // Position line: your value and the peer medians plotted on one shared
-  // pounds axis. Distance is literal and uncapped, so how far above (or below)
-  // a median you sit is drawn to scale. Colour keeps the green-above /
-  // red-below convention, driven by the local comparison (national if local
-  // is suppressed).
+  // Mixed scale:
+  //  - tight cluster (UDA-style): zoom into the value range so markers separate
+  //  - wide / outlier: £0-based axis with soft-cap so gaps stay representative
   function buildPositionLine(row) {
     const you = Number(row.your_value);
     const nat =
       row.national && row.national.median != null ? Number(row.national.median) : null;
     const hasLocal = !row.local_suppressed && row.local && row.local.median != null;
     const loc = hasLocal ? Number(row.local.median) : null;
+    const same =
+      row.national_same_size && row.national_same_size.median != null
+        ? Number(row.national_same_size.median)
+        : null;
 
-    const pts = [you, nat, loc].filter((v) => v != null && Number.isFinite(v));
-    let min = Math.min(...pts);
-    let max = Math.max(...pts);
-    let pad = (max - min) * 0.12;
-    if (!(pad > 0)) pad = (Math.abs(max) || 1) * 0.1;
-    min -= pad;
-    max += pad;
+    const pts = [you, nat, loc].filter((v) => v != null && Number.isFinite(v) && v >= 0);
+    if (!pts.length) {
+      return `<div class="bench"><p class="compare-note">No figures to plot.</p></div>`;
+    }
+
+    const rawMin = Math.min(...pts);
+    const rawMax = Math.max(...pts);
+    const peerRef = Math.max(nat || 0, loc || 0, same || 0);
+    const mid = peerRef > 0 ? peerRef : (rawMin + rawMax) / 2 || 1;
+    const rawSpan = rawMax - rawMin;
+    const relSpread = rawSpan / mid;
+    const outlierHigh = peerRef > 0 && you > peerRef * 1.55;
+    const outlierLow = peerRef > 0 && you < peerRef * 0.65;
+
+    let min;
+    let max;
+    let plotYou = you;
+
+    if (!outlierHigh && !outlierLow && relSpread <= 0.28) {
+      // Zoom: expand around the cluster so close values remain readable
+      const pad = Math.max(rawSpan * 0.55, mid * 0.04, Math.abs(mid) * 0.02);
+      min = Math.max(0, rawMin - pad);
+      max = rawMax + pad;
+      if (max - min < mid * 0.08) {
+        min = Math.max(0, mid - mid * 0.04);
+        max = mid + mid * 0.04;
+      }
+    } else if (outlierHigh || outlierLow || relSpread >= 0.55) {
+      // Absolute: start at £0; soft-cap extreme highs so the chart doesn't look broken
+      min = 0;
+      const peak = rawMax;
+      max = Math.max(peak * 1.06, peerRef > 0 ? peerRef * 2 : peak * 1.06);
+      const softCap = peerRef > 0 ? peerRef * 2.15 : max;
+      if (you > softCap) {
+        plotYou = softCap;
+        max = softCap * 1.04;
+      }
+    } else {
+      // Balanced: peer-centred window — not full £0, not a microscopic zoom
+      const half = Math.max(rawSpan * 0.75, mid * 0.35);
+      min = Math.max(0, Math.min(rawMin, mid) - half * 0.25);
+      max = Math.max(rawMax, mid) + half * 0.35;
+    }
+
     const span = max - min || 1;
-    const x = (v) => ((v - min) / span) * 100;
+    const xRaw = (v) => {
+      const t = ((Number(v) - min) / span) * 100;
+      return Math.max(2, Math.min(98, t));
+    };
+
+    // Keep marker order but enforce a minimum visual gap so labels don't collide
+    function spreadMarkers(items, minGap) {
+      if (items.length < 2) return items;
+      const sorted = [...items].sort((a, b) => a.x - b.x || a.priority - b.priority);
+      for (let i = 1; i < sorted.length; i++) {
+        const floor = sorted[i - 1].x + minGap;
+        if (sorted[i].x < floor) sorted[i].x = floor;
+      }
+      if (sorted[sorted.length - 1].x > 98) {
+        const overflow = sorted[sorted.length - 1].x - 98;
+        for (const it of sorted) it.x = Math.max(2, it.x - overflow);
+        for (let i = 1; i < sorted.length; i++) {
+          const floor = sorted[i - 1].x + minGap;
+          if (sorted[i].x < floor) sorted[i].x = Math.min(98, floor);
+        }
+      }
+      return sorted;
+    }
 
     const dir = benchDir(hasLocal ? row.pct_vs_local : row.pct_vs_national);
     const natDir = benchDir(row.pct_vs_national);
     const locDir = benchDir(row.pct_vs_local);
 
-    const xYou = x(you);
-    const barAnchor = hasLocal ? loc : nat;
-    const barL = barAnchor != null ? Math.min(x(barAnchor), xYou) : xYou;
-    const barW = barAnchor != null ? Math.abs(xYou - x(barAnchor)) : 0;
-    const youLab =
-      xYou >= 55
-        ? `right:${(100 - xYou).toFixed(1)}%;text-align:right`
-        : `left:${xYou.toFixed(1)}%;transform:translateX(-50%)`;
+    const markers = [{ id: "you", x: xRaw(plotYou), priority: 0 }];
+    if (nat != null) markers.push({ id: "nat", x: xRaw(nat), priority: 1 });
+    if (hasLocal) markers.push({ id: "loc", x: xRaw(loc), priority: 2 });
+    const placed = spreadMarkers(markers, relSpread <= 0.28 ? 11 : 7);
+    const byId = Object.fromEntries(placed.map((m) => [m.id, m.x]));
+
+    const xYou = byId.you;
+    const natX = nat != null ? byId.nat : null;
+    const locX = hasLocal ? byId.loc : null;
+
+    const barAnchorX = hasLocal ? locX : natX;
+    const barL = barAnchorX != null ? Math.min(barAnchorX, xYou) : xYou;
+    const barW = barAnchorX != null ? Math.abs(xYou - barAnchorX) : 0;
+
+    // Prefer putting the You label on the side with more free space / away from ticks
+    const nearestTick = [natX, locX]
+      .filter((v) => v != null)
+      .reduce((best, v) => (best == null || Math.abs(v - xYou) < Math.abs(best - xYou) ? v : best), null);
+    const labelRight =
+      nearestTick != null ? xYou < nearestTick : xYou < 55;
+    const youLab = labelRight
+      ? `left:${xYou.toFixed(1)}%;transform:translateX(10px)`
+      : `right:${(100 - xYou).toFixed(1)}%;text-align:right;transform:translateX(-10px)`;
 
     let ticks = "";
-    if (nat != null) {
-      ticks += `<span class="bench-tick" style="left:${x(nat)}%"></span>`;
-      ticks += `<span class="bench-tlabel" style="left:${x(nat)}%">National</span>`;
+    if (nat != null && natX != null) {
+      ticks += `<span class="bench-tick" style="left:${natX.toFixed(1)}%"></span>`;
+      ticks += `<span class="bench-tlabel" style="left:${natX.toFixed(1)}%">National</span>`;
     }
-    if (hasLocal) {
-      ticks += `<span class="bench-tick loc" style="left:${x(loc)}%"></span>`;
-      ticks += `<span class="bench-tlabel below" style="left:${x(loc)}%">Local</span>`;
+    if (hasLocal && locX != null) {
+      ticks += `<span class="bench-tick loc" style="left:${locX.toFixed(1)}%"></span>`;
+      ticks += `<span class="bench-tlabel below" style="left:${locX.toFixed(1)}%">Local</span>`;
     }
 
     let chips = "";
@@ -162,11 +238,8 @@
         row.id
       )}</b></span>`;
     }
-    if (row.national_same_size && row.national_same_size.median != null) {
-      legend += `<span>Same-size <b>${formatMoney(
-        row.national_same_size.median,
-        row.id
-      )}</b></span>`;
+    if (same != null) {
+      legend += `<span>Same-size <b>${formatMoney(same, row.id)}</b></span>`;
     }
 
     return `
@@ -419,13 +492,8 @@
     return metrics;
   }
 
-  function formatCohortLocation(cohort) {
-    const place = String(cohort?.location || "").trim();
-    if (!place) return "Local peer group for your selected location";
-    if (cohort?.mode === "radius" && Number.isFinite(Number(cohort.radius_miles))) {
-      return `Local peer group: within ${Number(cohort.radius_miles)} miles of ${place}`;
-    }
-    return `Local peer group: ${place}`;
+  function formatCohortLocation(_cohort) {
+    return "Local practices in your area";
   }
 
   function renderReport(data) {
