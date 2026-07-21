@@ -76,7 +76,7 @@
     const termOut = document.getElementById("calcTerm");
     const exitOut = document.getElementById("calcExit");
     const SAVINGS_RATE = 0.2;
-    const EXIT_MULTIPLE = 7;
+    const EXIT_MULTIPLE = 5;
 
     function renderCalc() {
       const overheads = Number(range.value);
