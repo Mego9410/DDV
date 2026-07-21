@@ -13,709 +13,695 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Lora:ital,wght@0,500;0,600;0,700;1,600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="./styles.css" />
-    <link rel="stylesheet" href="./home.css" />
     <link rel="stylesheet" href="./hidden-profit.css" />
   </head>
-  <body class="home-page hpp-page">
-    <div class="bg" aria-hidden="true"></div>
-
+  <body class="hpp-page">
     <!-- ===================== NAV ===================== -->
-    <header class="hp-nav">
-      <div class="hp-nav-inner">
+    <header class="hpp-nav">
+      <div class="hpp-shell hpp-nav-inner">
         <a class="brand" href="/" aria-label="Dental Data Vault, by Frank Taylor and Associates">
           <img class="logo-img" src="./assets/logo.png" alt="Frank Taylor &amp; Associates" />
-          <span class="brand-tag">Dental Data Vault</span>
+          <span class="hpp-brand-tag">Dental Data Vault</span>
         </a>
-        <nav class="hp-nav-actions" aria-label="Primary">
-          <a class="hp-nav-link" href="#math">The math</a>
-          <a class="hp-nav-link" href="#offer">The offer</a>
-          <a class="hp-nav-link" href="#how">How it works</a>
-          <a class="hp-nav-link" href="#faq">FAQ</a>
-          <a class="btn btn-primary hp-nav-cta" href="#apply">Claim a founding place</a>
+        <nav class="hpp-nav-links" aria-label="Primary">
+          <a class="hpp-nav-link" href="#covered">What we audit</a>
+          <a class="hpp-nav-link" href="#how">How it works</a>
+          <a class="hpp-nav-link" href="#math">The math</a>
+          <a class="hpp-nav-link" href="#faq">FAQ</a>
+          <a class="hpp-pill hpp-pill-gold hpp-nav-cta" href="#apply">Claim a founding place</a>
         </nav>
       </div>
     </header>
 
-    <main class="hp">
+    <main class="hpp-main">
       <!-- ===================== HERO ===================== -->
-      <section class="hp-hero">
-        <div class="hp-hero-grid hpp-hero-grid">
-          <div class="hp-hero-main">
-            <p class="eyebrow" id="livePlaces">Launching soon — 25 founding places</p>
-            <h1 class="hp-hero-title">
-              There's a five-figure<br />leak in your <em>practice.</em>
+      <section class="hpp-hero">
+        <div class="hpp-shell hpp-hero-grid">
+          <div class="hpp-hero-copy">
+            <h1 class="hpp-h1">
+              There's a five-figure leak<br />in your practice.
             </h1>
-            <p class="hp-hero-lede">
-              A forensic audit of 12 months of your supplier invoices — materials, labs, utilities,
-              insurance and 40+ more categories — benchmarked line-by-line against real market
-              rates. Typical result: <strong>~20% of overheads recovered.</strong>
+            <p class="hpp-hero-lede">
+              We audit 12 months of your supplier invoices, benchmark every line against real
+              market rates, and recover what you're overpaying — so you can keep running dentistry
+              while we fix the money quietly leaving it.
             </p>
-            <p class="hpp-guarantee-line">If we find nothing, you pay nothing. Not a reduced fee. Nothing.</p>
-            <div class="hp-hero-actions">
-              <a class="btn btn-primary hp-cta-btn" href="#apply">
-                Claim 1 of 25 founding places
-                <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
-                  <path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
-                </svg>
-              </a>
-              <a class="hp-textlink" href="#math">See the math</a>
-            </div>
-            <p class="hp-hero-note">
-              No savings, no fee · Keep your current suppliers · 5-minute application
-            </p>
-          </div>
-
-          <!-- Audit sample card -->
-          <aside class="hpp-panel" id="auditPanel" aria-label="Illustrative audit sample">
-            <div class="hpp-panel-head">
-              <span class="hpp-panel-title">Audit findings — sample</span>
-              <span class="hpp-panel-meta">12 months, line-by-line</span>
-            </div>
-            <ul class="hpp-panel-rows" role="list">
-              <li class="hpp-panel-row" data-pct="18">
-                <span class="hpp-row-label">Materials &amp; consumables</span>
-                <span class="hpp-row-bar"><span class="hpp-row-fill"></span></span>
-                <span class="hpp-row-delta">−18%</span>
+            <ul class="hpp-heroticks" role="list">
+              <li>
+                <span class="hpp-tick hpp-tick--green" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="13" height="13"><path d="M5 13l4 4L19 7" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </span>
+                No savings, no fee — ever
               </li>
-              <li class="hpp-panel-row" data-pct="31">
-                <span class="hpp-row-label">Utilities &amp; energy</span>
-                <span class="hpp-row-bar"><span class="hpp-row-fill"></span></span>
-                <span class="hpp-row-delta">−31%</span>
+              <li>
+                <span class="hpp-tick hpp-tick--blue" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="13" height="13"><path d="M5 13l4 4L19 7" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </span>
+                Keep the suppliers you trust
               </li>
-              <li class="hpp-panel-row" data-pct="22">
-                <span class="hpp-row-label">Card processing</span>
-                <span class="hpp-row-bar"><span class="hpp-row-fill"></span></span>
-                <span class="hpp-row-delta">−22%</span>
-              </li>
-              <li class="hpp-panel-row" data-pct="12">
-                <span class="hpp-row-label">Laboratory fees</span>
-                <span class="hpp-row-bar"><span class="hpp-row-fill"></span></span>
-                <span class="hpp-row-delta">−12%</span>
-              </li>
-              <li class="hpp-panel-row" data-pct="14">
-                <span class="hpp-row-label">Insurance</span>
-                <span class="hpp-row-bar"><span class="hpp-row-fill"></span></span>
-                <span class="hpp-row-delta">−14%</span>
+              <li>
+                <span class="hpp-tick hpp-tick--gold" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="13" height="13"><path d="M5 13l4 4L19 7" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </span>
+                ~20% of overheads typically recovered
               </li>
             </ul>
-            <div class="hpp-panel-foot">
-              <span class="hpp-panel-foot-label">Identified, first pass</span>
-              <span class="hpp-panel-foot-num" id="panelTotal" data-target="38400">£0</span>
-              <span class="hpp-panel-foot-unit">/ year</span>
+            <div class="hpp-hero-actions">
+              <a class="hpp-pill hpp-pill-gold hpp-pill-lg" href="#apply">Claim 1 of 25 founding places</a>
+              <a class="hpp-hero-link" href="#math">See the math ↓</a>
             </div>
+            <p class="hpp-hero-note" id="livePlaces">Launching soon · If we find nothing, you pay nothing</p>
+          </div>
+
+          <div class="hpp-hero-visual">
+            <div class="hpp-blob" aria-hidden="true"></div>
+            <aside class="hpp-panel" id="auditPanel" aria-label="Illustrative audit sample">
+              <div class="hpp-panel-head">
+                <span class="hpp-panel-title">Audit findings — sample</span>
+                <span class="hpp-panel-meta">12 months</span>
+              </div>
+              <ul class="hpp-panel-rows" role="list">
+                <li class="hpp-panel-row" data-pct="18">
+                  <span class="hpp-row-label">Materials &amp; consumables</span>
+                  <span class="hpp-row-bar"><span class="hpp-row-fill"></span></span>
+                  <span class="hpp-row-delta">−18%</span>
+                </li>
+                <li class="hpp-panel-row" data-pct="31">
+                  <span class="hpp-row-label">Utilities &amp; energy</span>
+                  <span class="hpp-row-bar"><span class="hpp-row-fill"></span></span>
+                  <span class="hpp-row-delta">−31%</span>
+                </li>
+                <li class="hpp-panel-row" data-pct="22">
+                  <span class="hpp-row-label">Card processing</span>
+                  <span class="hpp-row-bar"><span class="hpp-row-fill"></span></span>
+                  <span class="hpp-row-delta">−22%</span>
+                </li>
+                <li class="hpp-panel-row" data-pct="12">
+                  <span class="hpp-row-label">Laboratory fees</span>
+                  <span class="hpp-row-bar"><span class="hpp-row-fill"></span></span>
+                  <span class="hpp-row-delta">−12%</span>
+                </li>
+                <li class="hpp-panel-row" data-pct="14">
+                  <span class="hpp-row-label">Insurance</span>
+                  <span class="hpp-row-bar"><span class="hpp-row-fill"></span></span>
+                  <span class="hpp-row-delta">−14%</span>
+                </li>
+              </ul>
+              <div class="hpp-panel-foot">
+                <span class="hpp-panel-foot-label">Identified, first pass</span>
+                <span class="hpp-panel-foot-num" id="panelTotal" data-target="38400">£0</span>
+                <span class="hpp-panel-foot-unit">/ year</span>
+              </div>
+            </aside>
             <p class="hpp-panel-note">Illustrative composite of typical category findings.</p>
-          </aside>
-        </div>
-
-        <div class="hp-ridge" aria-hidden="true">
-          <svg viewBox="0 0 1200 120" preserveAspectRatio="none" role="presentation">
-            <polyline
-              points="0,40 150,66 300,52 470,90 640,60 820,104 1010,72 1200,94"
-              fill="none" stroke="currentColor" stroke-width="1.5"
-              stroke-linecap="round" stroke-linejoin="round" />
-            <circle cx="820" cy="104" r="4" class="hp-ridge-peak" />
-          </svg>
-        </div>
-      </section>
-
-      <!-- ===================== PROOF LEDGER ===================== -->
-      <section class="hp-ledger" aria-label="Programme by the numbers">
-        <div class="hp-ledger-item">
-          <span class="hp-ledger-num"><span class="hpp-count" data-target="40">0</span><span class="hp-ledger-unit">+</span></span>
-          <span class="hp-ledger-label">Cost categories audited</span>
-        </div>
-        <div class="hp-ledger-item">
-          <span class="hp-ledger-num">~<span class="hpp-count" data-target="20">0</span><span class="hp-ledger-unit">%</span></span>
-          <span class="hp-ledger-label">Typical savings identified</span>
-        </div>
-        <div class="hp-ledger-item">
-          <span class="hp-ledger-num"><span class="hpp-count" data-target="60">0</span><span class="hp-ledger-unit">%</span></span>
-          <span class="hp-ledger-label">Keep their current suppliers</span>
-        </div>
-        <div class="hp-ledger-item">
-          <span class="hp-ledger-num"><span class="hpp-count" data-target="24">0</span><span class="hp-ledger-unit">mo</span></span>
-          <span class="hp-ledger-label">Savings verified after</span>
-        </div>
-      </section>
-
-      <!-- ===================== THE MATH (CALCULATOR) ===================== -->
-      <section class="hp-section" id="math" aria-labelledby="mathHeading">
-        <div class="hpp-shead">
-          <p class="eyebrow">The math</p>
-          <h2 class="hp-shead-title" id="mathHeading">Run your own numbers</h2>
-          <p class="hp-shead-lede">
-            Every pound of overhead recovered is a pound of profit. And when you sell, profit is
-            what your practice is valued on — so a recovered pound is worth roughly seven on the
-            way out.
-          </p>
-        </div>
-
-        <div class="hpp-calc">
-          <div class="hpp-calc-input">
-            <label class="hpp-calc-label" for="calcRange">Your annual overhead spend</label>
-            <output class="hpp-calc-value" id="calcValue" for="calcRange">£250,000</output>
-            <input type="range" id="calcRange" min="50000" max="600000" step="10000" value="250000"
-                   aria-label="Annual overhead spend in pounds" />
-            <div class="hpp-calc-scale" aria-hidden="true"><span>£50k</span><span>£600k</span></div>
           </div>
-          <div class="hpp-calc-results">
-            <div class="hpp-calc-card">
-              <span class="hpp-calc-card-label">Typical recovery / year</span>
-              <span class="hpp-calc-card-num" id="calcSavings">£50,000</span>
-              <span class="hpp-calc-card-sub">at ~20% identified savings</span>
-            </div>
-            <div class="hpp-calc-card">
-              <span class="hpp-calc-card-label">Over the 24-month term</span>
-              <span class="hpp-calc-card-num" id="calcTerm">£100,000</span>
-              <span class="hpp-calc-card-sub">verified against your invoices</span>
-            </div>
-            <div class="hpp-calc-card hpp-calc-card--gold">
-              <span class="hpp-calc-card-label">Added to your sale value</span>
-              <span class="hpp-calc-card-num" id="calcExit">£350,000</span>
-              <span class="hpp-calc-card-sub">at a 7× profit multiple</span>
+        </div>
+      </section>
+
+      <!-- ===================== TRUST STRIP ===================== -->
+      <section class="hpp-trust" aria-label="Programme by the numbers">
+        <div class="hpp-shell">
+          <p class="hpp-trust-label">Built on 38 years of UK dental practice data</p>
+          <ul class="hpp-trust-stats" role="list">
+            <li><strong>40+</strong> cost categories audited</li>
+            <li><strong>~20%</strong> typical savings identified</li>
+            <li><strong>60%</strong> keep their current suppliers</li>
+            <li><strong>24 mo</strong> of savings verification</li>
+          </ul>
+          <span class="hpp-trust-pill">25 founding places at launch</span>
+        </div>
+      </section>
+
+      <!-- ===================== CATEGORY CARDS ===================== -->
+      <section class="hpp-section" id="covered" aria-labelledby="coveredHeading">
+        <div class="hpp-shell">
+          <h2 class="hpp-h2 hpp-center" id="coveredHeading">
+            Your practice is quietly overpaying.<br />Here's where we look.
+          </h2>
+          <p class="hpp-sub hpp-center">
+            Category specialists — each an expert in a single market — go through every supplier
+            line you have. Nothing is too small to benchmark.
+          </p>
+
+          <div class="hpp-cards">
+            <article class="hpp-card hpp-card--gold">
+              <span class="hpp-card-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="22" height="22"><path d="M9 3h6M10 3v5.5L4.8 17a3 3 0 0 0 2.7 4.4h9a3 3 0 0 0 2.7-4.4L14 8.5V3M7.5 14h9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </span>
+              <h3>Materials &amp; consumables</h3>
+              <p>Composite to gloves, benchmarked line-by-line against what the wider market pays.</p>
+            </article>
+            <article class="hpp-card hpp-card--blue">
+              <span class="hpp-card-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="22" height="22"><path d="M4 7h16M4 12h16M4 17h10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              </span>
+              <h3>Laboratory fees</h3>
+              <p>Unit pricing, remakes and turnaround terms reviewed against comparable labs.</p>
+            </article>
+            <article class="hpp-card hpp-card--green">
+              <span class="hpp-card-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="22" height="22"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+              </span>
+              <h3>Utilities &amp; energy</h3>
+              <p>Tariffs, standing charges and contract end-dates worked properly — not auto-renewed.</p>
+            </article>
+            <article class="hpp-card hpp-card--purple">
+              <span class="hpp-card-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 2l7 4v6c0 4.4-3 8.4-7 10-4-1.6-7-5.6-7-10V6l7-4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+              </span>
+              <h3>Insurance &amp; banking</h3>
+              <p>Cover re-broked on level terms, plus the merchant and banking fees nobody revisits.</p>
+            </article>
+            <article class="hpp-card hpp-card--pink">
+              <span class="hpp-card-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="22" height="22"><rect x="3" y="5" width="18" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8 21h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              </span>
+              <h3>IT, telecoms &amp; software</h3>
+              <p>Lines, broadband, mobiles and licences — the quiet monthly leaks that compound.</p>
+            </article>
+            <article class="hpp-card hpp-card--teal">
+              <span class="hpp-card-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="22" height="22"><path d="M4 7h16l-1.5 13a2 2 0 0 1-2 1.8h-9A2 2 0 0 1 5.5 20L4 7zM9 7V5a3 3 0 0 1 6 0v2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </span>
+              <h3>Facilities, waste &amp; equipment</h3>
+              <p>Clinical waste, cleaning, servicing contracts and equipment finance, all tested.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== HOW IT WORKS (steps + visual) ===================== -->
+      <section class="hpp-section hpp-section--tint" id="how" aria-labelledby="howHeading">
+        <div class="hpp-shell">
+          <h2 class="hpp-h2 hpp-center" id="howHeading">Forensic for us. Effortless for you.</h2>
+          <p class="hpp-sub hpp-center">
+            Your total time commitment is one call and access to your invoices. Everything else is
+            done for you.
+          </p>
+
+          <div class="hpp-how">
+            <ol class="hpp-how-list">
+              <li class="hpp-how-item">
+                <span class="hpp-how-num">01</span>
+                <div>
+                  <h3>Apply for a founding place</h3>
+                  <p>Five minutes. Applications are reviewed in order, and a place is only confirmed after a review call.</p>
+                </div>
+              </li>
+              <li class="hpp-how-item">
+                <span class="hpp-how-num">02</span>
+                <div>
+                  <h3>Review call &amp; scoping</h3>
+                  <p>A short call to agree which cost categories to attack first.</p>
+                </div>
+              </li>
+              <li class="hpp-how-item">
+                <span class="hpp-how-num">03</span>
+                <div>
+                  <h3>We audit 12 months of invoices</h3>
+                  <p>Specialists benchmark every price against real market data, line by line.</p>
+                </div>
+              </li>
+              <li class="hpp-how-item">
+                <span class="hpp-how-num">04</span>
+                <div>
+                  <h3>You approve, we implement</h3>
+                  <p>Stay with your supplier on better terms, or switch. Your call, our legwork.</p>
+                </div>
+              </li>
+              <li class="hpp-how-item">
+                <span class="hpp-how-num">05</span>
+                <div>
+                  <h3>Savings verified for 24 months</h3>
+                  <p>Ongoing invoices audited so every agreed saving lands — and stays.</p>
+                </div>
+              </li>
+            </ol>
+
+            <div class="hpp-how-visual">
+              <div class="hpp-how-panel">
+                <div class="hpp-mini">
+                  <div class="hpp-mini-row"><span class="hpp-mini-dot hpp-mini-dot--green"></span> Invoices received <em>412 lines</em></div>
+                  <div class="hpp-mini-row"><span class="hpp-mini-dot hpp-mini-dot--blue"></span> Benchmarked <em>412 / 412</em></div>
+                  <div class="hpp-mini-row"><span class="hpp-mini-dot hpp-mini-dot--gold"></span> Savings found <em>£38,400 / yr</em></div>
+                  <div class="hpp-mini-row"><span class="hpp-mini-dot hpp-mini-dot--purple"></span> Awaiting your approval <em>6 changes</em></div>
+                </div>
+              </div>
+              <p class="hpp-how-caption">
+                Every recommendation comes back to you as a simple decision: keep your supplier on
+                better terms, or switch. Nothing moves without your sign-off.
+              </p>
             </div>
           </div>
-          <p class="hpp-calc-note">
-            Illustrative, based on typical identified savings of ~20% and a 7× profit multiple.
-            Your audit is benchmarked against your actual invoices.
-          </p>
         </div>
       </section>
 
-      <!-- ===================== WHERE IT LEAKS ===================== -->
-      <section class="hp-section" id="problem" aria-labelledby="problemHeading">
-        <div class="hpp-shead">
-          <p class="eyebrow">Where it leaks</p>
-          <h2 class="hp-shead-title" id="problemHeading">Your suppliers price for the busy</h2>
-          <p class="hp-shead-lede">
-            Nobody sends you an invoice titled "the amount you're overpaying." The leak hides in
-            three places, and none of them look like a problem on any single day.
+      <!-- ===================== CALCULATOR ===================== -->
+      <section class="hpp-section" id="math" aria-labelledby="mathHeading">
+        <div class="hpp-shell">
+          <h2 class="hpp-h2 hpp-center" id="mathHeading">Run your own numbers in seconds.</h2>
+          <p class="hpp-sub hpp-center">
+            Every pound recovered is a pound of profit — and when you sell, profit is what your
+            practice is valued on.
           </p>
-        </div>
 
-        <ol class="hp-ruled">
-          <li class="hp-ruled-item">
-            <span class="hp-ruled-num">01</span>
-            <div class="hp-ruled-text">
-              <h3>Renewals roll on autopilot</h3>
-              <p>
-                Insurance, energy, telecoms, waste — they renew quietly every year, usually with an
-                uplift, because nobody has time to go back to the market. Inertia is the most
-                expensive supplier you have.
-              </p>
+          <div class="hpp-calc">
+            <div class="hpp-calc-input">
+              <label class="hpp-calc-label" for="calcRange">Your annual overhead spend</label>
+              <output class="hpp-calc-value" id="calcValue" for="calcRange">£250,000</output>
+              <input type="range" id="calcRange" min="50000" max="600000" step="10000" value="250000"
+                     aria-label="Annual overhead spend in pounds" />
+              <div class="hpp-calc-scale" aria-hidden="true"><span>£50k</span><span>£600k</span></div>
             </div>
-          </li>
-          <li class="hp-ruled-item">
-            <span class="hp-ruled-num">02</span>
-            <div class="hp-ruled-text">
-              <h3>Prices drift in small increments</h3>
-              <p>
-                Materials and lab pricing creeps up in steps too small to fight individually. Across
-                a year, across every line, the drift compounds into five figures — invisible unless
-                someone audits invoice by invoice.
-              </p>
+            <div class="hpp-calc-results">
+              <div class="hpp-calc-card">
+                <span class="hpp-calc-card-label">Typical recovery / year</span>
+                <span class="hpp-calc-card-num" id="calcSavings">£50,000</span>
+                <span class="hpp-calc-card-sub">at ~20% identified savings</span>
+              </div>
+              <div class="hpp-calc-card">
+                <span class="hpp-calc-card-label">Over the 24-month term</span>
+                <span class="hpp-calc-card-num" id="calcTerm">£100,000</span>
+                <span class="hpp-calc-card-sub">verified against your invoices</span>
+              </div>
+              <div class="hpp-calc-card hpp-calc-card--gold">
+                <span class="hpp-calc-card-label">Added to your sale value</span>
+                <span class="hpp-calc-card-num" id="calcExit">£350,000</span>
+                <span class="hpp-calc-card-sub">at a 7× profit multiple</span>
+              </div>
             </div>
-          </li>
-          <li class="hp-ruled-item">
-            <span class="hp-ruled-num">03</span>
-            <div class="hp-ruled-text">
-              <h3>Tendering properly never happens</h3>
-              <p>
-                Getting genuinely competitive pricing means knowing each market, its suppliers and
-                its negotiating levers. Between surgeries, staff and CQC, that job never reaches the
-                top of your list. So it never gets done.
-              </p>
-            </div>
-          </li>
-        </ol>
+            <p class="hpp-calc-note">
+              Illustrative, based on typical identified savings of ~20% and a 7× profit multiple.
+              Your audit is benchmarked against your actual invoices.
+            </p>
+          </div>
+        </div>
       </section>
 
-      <!-- ===================== WHAT WE AUDIT ===================== -->
-      <section class="hp-section" id="categories" aria-labelledby="catHeading">
-        <div class="hpp-shead">
-          <p class="eyebrow">Coverage</p>
-          <h2 class="hp-shead-title" id="catHeading">Every line of overhead, forensically</h2>
-          <p class="hp-shead-lede">
-            Category specialists — each an expert in a single market — backed by 38 years of UK
-            dental practice cost data. We know what a practice like yours should be paying.
-          </p>
-        </div>
-
-        <ul class="hpp-cats" role="list">
-          <li class="hpp-cat"><h3>Materials &amp; consumables</h3><p>Composite to gloves, benchmarked line-by-line against the wider market.</p></li>
-          <li class="hpp-cat"><h3>Laboratory fees</h3><p>Unit pricing, remakes and turnaround terms reviewed against comparable labs.</p></li>
-          <li class="hpp-cat"><h3>Utilities &amp; energy</h3><p>Tariffs and contract end-dates worked properly, not auto-renewed.</p></li>
-          <li class="hpp-cat"><h3>Insurance</h3><p>Practice, locum and equipment cover re-broked on level terms.</p></li>
-          <li class="hpp-cat"><h3>Card processing &amp; banking</h3><p>Merchant rates and charges most practices never revisit.</p></li>
-          <li class="hpp-cat"><h3>Telecoms, IT &amp; software</h3><p>Lines, broadband, mobiles and licences — the quiet monthly leaks.</p></li>
-          <li class="hpp-cat"><h3>Clinical waste</h3><p>Collection frequency, bin pricing and compliance costs benchmarked.</p></li>
-          <li class="hpp-cat"><h3>Equipment service</h3><p>Service contracts and call-out terms tested against the market.</p></li>
-          <li class="hpp-cat"><h3>Cleaning &amp; facilities</h3><p>Contract cleaning and facilities spend reviewed on spec and price.</p></li>
-          <li class="hpp-cat"><h3>Finance, leasing &amp; HP</h3><p>Equipment finance and leasing rates checked before you sign.</p></li>
-        </ul>
-      </section>
-
-      <!-- ===================== THE OFFER STACK ===================== -->
-      <section class="hp-section" id="offer" aria-labelledby="offerHeading">
-        <div class="hpp-shead">
-          <p class="eyebrow">The founding offer</p>
-          <h2 class="hp-shead-title" id="offerHeading">Everything a founding practice gets</h2>
-          <p class="hp-shead-lede">
+      <!-- ===================== OFFER STACK ===================== -->
+      <section class="hpp-section hpp-section--tint" id="offer" aria-labelledby="offerHeading">
+        <div class="hpp-shell">
+          <h2 class="hpp-h2 hpp-center" id="offerHeading">Everything a founding practice gets.</h2>
+          <p class="hpp-sub hpp-center">
             Bought separately at typical consultancy rates, this stack costs more than most
             practices save in year one. Founding practices pay none of it upfront.
           </p>
-        </div>
 
-        <div class="hpp-stack">
-          <ul class="hpp-stack-list" role="list">
-            <li class="hpp-stack-item">
-              <div class="hpp-stack-text">
-                <h3>Forensic 12-month invoice audit</h3>
-                <p>Every supplier line benchmarked against live market data across 40+ categories.</p>
+          <div class="hpp-stack">
+            <ul class="hpp-stack-list" role="list">
+              <li class="hpp-stack-item">
+                <div class="hpp-stack-text">
+                  <h3>Forensic 12-month invoice audit</h3>
+                  <p>Every supplier line benchmarked against live market data across 40+ categories.</p>
+                </div>
+                <span class="hpp-stack-value">£7,500</span>
+              </li>
+              <li class="hpp-stack-item">
+                <div class="hpp-stack-text">
+                  <h3>Specialist renegotiation, done for you</h3>
+                  <p>Category experts run the tenders and negotiations. You approve, we implement.</p>
+                </div>
+                <span class="hpp-stack-value">£12,000</span>
+              </li>
+              <li class="hpp-stack-item">
+                <div class="hpp-stack-text">
+                  <h3>24 months of savings verification</h3>
+                  <p>Ongoing invoices audited so every agreed saving actually lands — and stays.</p>
+                </div>
+                <span class="hpp-stack-value">£4,800</span>
+              </li>
+              <li class="hpp-stack-item">
+                <div class="hpp-stack-text">
+                  <h3>Full Dental Data Vault benchmark report</h3>
+                  <p>Your practice against local and national peers, on 38 years of data.</p>
+                </div>
+                <span class="hpp-stack-value">£1,500</span>
+              </li>
+              <li class="hpp-stack-item">
+                <div class="hpp-stack-text">
+                  <h3>Founding savings-share terms, locked for life</h3>
+                  <p>The best terms we will ever offer — held for as long as you stay in the programme.</p>
+                </div>
+                <span class="hpp-stack-value">—</span>
+              </li>
+            </ul>
+            <div class="hpp-stack-total">
+              <div class="hpp-stack-total-row">
+                <span>Typical market cost</span>
+                <s>£25,800+</s>
               </div>
-              <span class="hpp-stack-value">£7,500</span>
-            </li>
-            <li class="hpp-stack-item">
-              <div class="hpp-stack-text">
-                <h3>Specialist renegotiation, done for you</h3>
-                <p>Category experts run the tenders and negotiations. You approve, we implement.</p>
+              <div class="hpp-stack-total-row hpp-stack-total-row--pay">
+                <span>You pay upfront</span>
+                <strong>£0</strong>
               </div>
-              <span class="hpp-stack-value">£12,000</span>
-            </li>
-            <li class="hpp-stack-item">
-              <div class="hpp-stack-text">
-                <h3>24 months of savings verification</h3>
-                <p>Ongoing invoices audited so every agreed saving actually lands — and stays.</p>
-              </div>
-              <span class="hpp-stack-value">£4,800</span>
-            </li>
-            <li class="hpp-stack-item">
-              <div class="hpp-stack-text">
-                <h3>Full Dental Data Vault benchmark report</h3>
-                <p>Your practice against local and national peers, on 38 years of data.</p>
-              </div>
-              <span class="hpp-stack-value">£1,500</span>
-            </li>
-            <li class="hpp-stack-item">
-              <div class="hpp-stack-text">
-                <h3>Founding savings-share terms, locked for life</h3>
-                <p>The best terms we will ever offer — held for as long as you stay in the programme.</p>
-              </div>
-              <span class="hpp-stack-value">—</span>
-            </li>
-          </ul>
-          <div class="hpp-stack-total">
-            <div class="hpp-stack-total-row">
-              <span>Typical market cost</span>
-              <s>£25,800+</s>
+              <p>
+                Our fee is a share of verified savings — money you weren't keeping anyway. No
+                savings, no fee, no exceptions.
+              </p>
+              <a class="hpp-pill hpp-pill-gold" href="#apply">Claim 1 of 25 founding places</a>
             </div>
-            <div class="hpp-stack-total-row hpp-stack-total-row--pay">
-              <span>You pay upfront</span>
-              <strong>£0</strong>
-            </div>
-            <p>
-              Our fee is a share of verified savings — money you weren't keeping anyway. No
-              savings, no fee, no exceptions.
-            </p>
-            <a class="btn btn-primary" href="#apply">Claim 1 of 25 founding places</a>
           </div>
         </div>
       </section>
 
-      <!-- ===================== GUARANTEE (DARK BAND) ===================== -->
-      <section class="hp-band" aria-labelledby="guaranteeHeading">
-        <div class="hp-band-inner">
-          <p class="eyebrow eyebrow--onink">The only-upside guarantee</p>
-          <h2 class="hp-band-title" id="guaranteeHeading">Two outcomes. You win both.</h2>
-          <div class="hp-band-cols">
-            <p>
-              <strong>We find savings:</strong> you keep the majority of every verified pound, your
-              profit rises, and your practice is worth more on the day you sell. Our fee comes out
-              of money that was leaving your account anyway.
-            </p>
-            <p>
-              <strong>We find nothing:</strong> you pay nothing, you keep the full benchmark report,
-              and you gain something almost no principal has — proof your costs are already sharp.
-              Either way, you know.
-            </p>
+      <!-- ===================== GUARANTEE ===================== -->
+      <section class="hpp-section" aria-labelledby="guaranteeHeading">
+        <div class="hpp-shell">
+          <h2 class="hpp-h2 hpp-center" id="guaranteeHeading">Two outcomes. You win both.</h2>
+          <div class="hpp-outcomes">
+            <div class="hpp-outcome hpp-outcome--green">
+              <span class="hpp-outcome-tag">Outcome 1</span>
+              <h3>We find savings</h3>
+              <p>
+                You keep the majority of every verified pound, your profit rises, and your practice
+                is worth more on the day you sell. Our fee comes out of money that was leaving your
+                account anyway.
+              </p>
+            </div>
+            <div class="hpp-outcome hpp-outcome--gold">
+              <span class="hpp-outcome-tag">Outcome 2</span>
+              <h3>We find nothing</h3>
+              <p>
+                You pay nothing, you keep the full benchmark report, and you gain something almost
+                no principal has — proof your costs are already sharp. Either way, you know.
+              </p>
+            </div>
           </div>
-          <p class="hp-band-punch">The only risk is finding out you're already paying the right price.</p>
         </div>
-      </section>
-
-      <!-- ===================== HOW IT WORKS ===================== -->
-      <section class="hp-section" id="how" aria-labelledby="howHeading">
-        <div class="hpp-shead">
-          <p class="eyebrow">The process</p>
-          <h2 class="hp-shead-title" id="howHeading">Forensic, not disruptive</h2>
-          <p class="hp-shead-lede">
-            Your total time commitment: one call and access to your invoices. The analysis,
-            tendering, negotiation and monitoring are done for you.
-          </p>
-        </div>
-
-        <ol class="hp-steps">
-          <li class="hp-step">
-            <span class="hp-step-num" aria-hidden="true">1</span>
-            <div class="hp-step-text">
-              <h3>Apply for a founding place</h3>
-              <p>Five minutes. Applications are reviewed in order — a place is only confirmed after a review call.</p>
-            </div>
-          </li>
-          <li class="hp-step">
-            <span class="hp-step-num" aria-hidden="true">2</span>
-            <div class="hp-step-text">
-              <h3>Review call &amp; scoping</h3>
-              <p>A short call to agree which cost categories to attack first and what good looks like for you.</p>
-            </div>
-          </li>
-          <li class="hp-step">
-            <span class="hp-step-num" aria-hidden="true">3</span>
-            <div class="hp-step-text">
-              <h3>We audit 12 months of invoices</h3>
-              <p>Category specialists benchmark every price against real market data, line by line.</p>
-            </div>
-          </li>
-          <li class="hp-step">
-            <span class="hp-step-num" aria-hidden="true">4</span>
-            <div class="hp-step-text">
-              <h3>You approve, we implement</h3>
-              <p>Stay with your supplier on better terms, or switch. Your call. We handle the negotiation and changeover.</p>
-            </div>
-          </li>
-          <li class="hp-step">
-            <span class="hp-step-num" aria-hidden="true">5</span>
-            <div class="hp-step-text">
-              <h3>Savings verified for 24 months</h3>
-              <p>We audit ongoing invoices so every agreed saving lands in your accounts — and stays there.</p>
-            </div>
-          </li>
-        </ol>
-        <p class="hp-trust">
-          Delivered under Dental Data Vault, built on Frank Taylor &amp; Associates' 38 years of UK
-          dental data — every benchmark reflects practices like yours, not generic averages.
-        </p>
       </section>
 
       <!-- ===================== APPLICATION ===================== -->
-      <section class="hp-section hpp-apply" id="apply" aria-labelledby="applyHeading">
-        <div class="hpp-shead">
-          <p class="eyebrow" id="applyPlaces">25 founding places</p>
-          <h2 class="hp-shead-title" id="applyHeading">Apply for a founding place</h2>
-          <p class="hp-shead-lede">
+      <section class="hpp-section hpp-section--tint" id="apply" aria-labelledby="applyHeading">
+        <div class="hpp-shell">
+          <h2 class="hpp-h2 hpp-center" id="applyHeading">Apply for a founding place.</h2>
+          <p class="hpp-sub hpp-center" id="applyPlaces">
             This is an application, not a mailing list. A founding place means a specialist team
             spending weeks on your practice — we ask real questions because we want to spend that
             time on principals who are serious.
           </p>
-        </div>
 
-        <div class="hpp-form-card">
-          <div class="hpp-progress" aria-hidden="true">
-            <div class="hpp-progress-step is-active" data-step-dot="1"><span>1</span> About you</div>
-            <div class="hpp-progress-step" data-step-dot="2"><span>2</span> Your practice</div>
-            <div class="hpp-progress-step" data-step-dot="3"><span>3</span> Your application</div>
-          </div>
+          <div class="hpp-form-card">
+            <div class="hpp-progress" aria-hidden="true">
+              <div class="hpp-progress-step is-active" data-step-dot="1"><span>1</span> About you</div>
+              <div class="hpp-progress-step" data-step-dot="2"><span>2</span> Your practice</div>
+              <div class="hpp-progress-step" data-step-dot="3"><span>3</span> Your application</div>
+            </div>
 
-          <form id="waitlistForm" novalidate>
-            <!-- Honeypot -->
-            <input type="text" name="website" id="hpWebsite" tabindex="-1" autocomplete="off" aria-hidden="true" class="hpp-hp" />
+            <form id="waitlistForm" novalidate>
+              <!-- Honeypot -->
+              <input type="text" name="website" id="hpWebsite" tabindex="-1" autocomplete="off" aria-hidden="true" class="hpp-hp" />
 
-            <!-- ============ STEP 1 ============ -->
-            <fieldset class="hpp-step-panel is-active" data-step="1">
-              <legend class="hpp-legend">About you</legend>
+              <!-- ============ STEP 1 ============ -->
+              <fieldset class="hpp-step-panel is-active" data-step="1">
+                <legend class="hpp-legend">About you</legend>
 
-              <div class="hpp-grid">
-                <label class="hpp-field">
-                  <span class="hpp-label">Full name</span>
-                  <input class="hpp-input" type="text" name="name" autocomplete="name" required maxlength="120" placeholder="Dr Jane Smith" />
-                </label>
-                <label class="hpp-field">
-                  <span class="hpp-label">Your role</span>
-                  <select class="hpp-input" name="role" required>
-                    <option value="" selected disabled>Select your role</option>
-                    <option value="principal">Principal / practice owner</option>
-                    <option value="partner">Partner / co-owner</option>
-                    <option value="practice_manager">Practice manager</option>
-                    <option value="other">Other</option>
-                  </select>
-                </label>
-                <label class="hpp-field">
-                  <span class="hpp-label">Email address</span>
-                  <input class="hpp-input" type="email" name="email" autocomplete="email" required maxlength="254" placeholder="you@yourpractice.co.uk" />
-                </label>
-                <label class="hpp-field">
-                  <span class="hpp-label">Mobile number</span>
-                  <input class="hpp-input" type="tel" name="phone" autocomplete="tel" required maxlength="20" placeholder="07xxx xxxxxx" />
-                  <span class="hpp-hint">Used only for your review call if your application is shortlisted.</span>
-                </label>
-              </div>
-
-              <div class="hpp-step-actions">
-                <span></span>
-                <button type="button" class="btn btn-dark hpp-next" data-next="2">Continue →</button>
-              </div>
-            </fieldset>
-
-            <!-- ============ STEP 2 ============ -->
-            <fieldset class="hpp-step-panel" data-step="2">
-              <legend class="hpp-legend">Your practice</legend>
-
-              <div class="hpp-grid">
-                <label class="hpp-field">
-                  <span class="hpp-label">Practice name</span>
-                  <input class="hpp-input" type="text" name="practiceName" required maxlength="160" placeholder="Smith Dental Care" />
-                </label>
-                <label class="hpp-field">
-                  <span class="hpp-label">Town / county</span>
-                  <input class="hpp-input" type="text" name="location" required maxlength="120" placeholder="e.g. St Albans, Hertfordshire" />
-                </label>
-                <label class="hpp-field">
-                  <span class="hpp-label">Number of surgeries</span>
-                  <select class="hpp-input" name="surgeryCount" required>
-                    <option value="" selected disabled>Select</option>
-                    <option value="1">1</option><option value="2">2</option><option value="3">3</option>
-                    <option value="4">4</option><option value="5">5</option><option value="6">6</option>
-                    <option value="7">7</option><option value="8">8</option><option value="9">9</option>
-                    <option value="10">10</option><option value="11">11</option><option value="12">12</option>
-                    <option value="13">13+</option>
-                  </select>
-                </label>
-                <label class="hpp-field">
-                  <span class="hpp-label">Practice type</span>
-                  <select class="hpp-input" name="practiceType" required>
-                    <option value="" selected disabled>Select</option>
-                    <option value="nhs">Mostly NHS</option>
-                    <option value="private">Mostly private</option>
-                    <option value="mixed">Mixed</option>
-                  </select>
-                </label>
-                <label class="hpp-field">
-                  <span class="hpp-label">Annual turnover</span>
-                  <select class="hpp-input" name="turnoverBand" required>
-                    <option value="" selected disabled>Select a band</option>
-                    <option value="under_500k">Under £500k</option>
-                    <option value="500k_1m">£500k – £1m</option>
-                    <option value="1m_2m">£1m – £2m</option>
-                    <option value="2m_5m">£2m – £5m</option>
-                    <option value="over_5m">Over £5m</option>
-                  </select>
-                  <span class="hpp-hint">A band is enough — we never share your figures.</span>
-                </label>
-                <label class="hpp-field">
-                  <span class="hpp-label">Years owning this practice</span>
-                  <select class="hpp-input" name="yearsOwned" required>
-                    <option value="" selected disabled>Select</option>
-                    <option value="under_2">Under 2 years</option>
-                    <option value="2_5">2 – 5 years</option>
-                    <option value="5_10">5 – 10 years</option>
-                    <option value="over_10">More than 10 years</option>
-                  </select>
-                </label>
-              </div>
-
-              <div class="hpp-step-actions">
-                <button type="button" class="btn btn-ghost hpp-back" data-back="1">← Back</button>
-                <button type="button" class="btn btn-dark hpp-next" data-next="3">Continue →</button>
-              </div>
-            </fieldset>
-
-            <!-- ============ STEP 3 ============ -->
-            <fieldset class="hpp-step-panel" data-step="3">
-              <legend class="hpp-legend">Your application</legend>
-
-              <div class="hpp-field">
-                <span class="hpp-label">Where do you suspect you're overpaying? <em>(select all that apply)</em></span>
-                <div class="hpp-checks" data-group="categories">
-                  <label class="hpp-check"><input type="checkbox" name="categories" value="materials" /><span>Materials &amp; consumables</span></label>
-                  <label class="hpp-check"><input type="checkbox" name="categories" value="labs" /><span>Laboratory fees</span></label>
-                  <label class="hpp-check"><input type="checkbox" name="categories" value="utilities" /><span>Utilities &amp; energy</span></label>
-                  <label class="hpp-check"><input type="checkbox" name="categories" value="insurance" /><span>Insurance</span></label>
-                  <label class="hpp-check"><input type="checkbox" name="categories" value="card_banking" /><span>Card processing &amp; banking</span></label>
-                  <label class="hpp-check"><input type="checkbox" name="categories" value="telecoms_it" /><span>Telecoms, IT &amp; software</span></label>
-                  <label class="hpp-check"><input type="checkbox" name="categories" value="clinical_waste" /><span>Clinical waste</span></label>
-                  <label class="hpp-check"><input type="checkbox" name="categories" value="equipment" /><span>Equipment service &amp; maintenance</span></label>
-                  <label class="hpp-check"><input type="checkbox" name="categories" value="cleaning_facilities" /><span>Cleaning &amp; facilities</span></label>
-                  <label class="hpp-check"><input type="checkbox" name="categories" value="finance_leasing" /><span>Finance, leasing &amp; HP</span></label>
-                  <label class="hpp-check"><input type="checkbox" name="categories" value="not_sure" /><span>Not sure — that's why I'm applying</span></label>
+                <div class="hpp-grid">
+                  <label class="hpp-field">
+                    <span class="hpp-label">Full name</span>
+                    <input class="hpp-input" type="text" name="name" autocomplete="name" required maxlength="120" placeholder="Dr Jane Smith" />
+                  </label>
+                  <label class="hpp-field">
+                    <span class="hpp-label">Your role</span>
+                    <select class="hpp-input" name="role" required>
+                      <option value="" selected disabled>Select your role</option>
+                      <option value="principal">Principal / practice owner</option>
+                      <option value="partner">Partner / co-owner</option>
+                      <option value="practice_manager">Practice manager</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </label>
+                  <label class="hpp-field">
+                    <span class="hpp-label">Email address</span>
+                    <input class="hpp-input" type="email" name="email" autocomplete="email" required maxlength="254" placeholder="you@yourpractice.co.uk" />
+                  </label>
+                  <label class="hpp-field">
+                    <span class="hpp-label">Mobile number</span>
+                    <input class="hpp-input" type="tel" name="phone" autocomplete="tel" required maxlength="20" placeholder="07xxx xxxxxx" />
+                    <span class="hpp-hint">Used only for your review call if your application is shortlisted.</span>
+                  </label>
                 </div>
-              </div>
 
-              <div class="hpp-grid">
+                <div class="hpp-step-actions">
+                  <span></span>
+                  <button type="button" class="hpp-pill hpp-pill-ink hpp-next" data-next="2">Continue →</button>
+                </div>
+              </fieldset>
+
+              <!-- ============ STEP 2 ============ -->
+              <fieldset class="hpp-step-panel" data-step="2">
+                <legend class="hpp-legend">Your practice</legend>
+
+                <div class="hpp-grid">
+                  <label class="hpp-field">
+                    <span class="hpp-label">Practice name</span>
+                    <input class="hpp-input" type="text" name="practiceName" required maxlength="160" placeholder="Smith Dental Care" />
+                  </label>
+                  <label class="hpp-field">
+                    <span class="hpp-label">Town / county</span>
+                    <input class="hpp-input" type="text" name="location" required maxlength="120" placeholder="e.g. St Albans, Hertfordshire" />
+                  </label>
+                  <label class="hpp-field">
+                    <span class="hpp-label">Number of surgeries</span>
+                    <select class="hpp-input" name="surgeryCount" required>
+                      <option value="" selected disabled>Select</option>
+                      <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                      <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+                      <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+                      <option value="10">10</option><option value="11">11</option><option value="12">12</option>
+                      <option value="13">13+</option>
+                    </select>
+                  </label>
+                  <label class="hpp-field">
+                    <span class="hpp-label">Practice type</span>
+                    <select class="hpp-input" name="practiceType" required>
+                      <option value="" selected disabled>Select</option>
+                      <option value="nhs">Mostly NHS</option>
+                      <option value="private">Mostly private</option>
+                      <option value="mixed">Mixed</option>
+                    </select>
+                  </label>
+                  <label class="hpp-field">
+                    <span class="hpp-label">Annual turnover</span>
+                    <select class="hpp-input" name="turnoverBand" required>
+                      <option value="" selected disabled>Select a band</option>
+                      <option value="under_500k">Under £500k</option>
+                      <option value="500k_1m">£500k – £1m</option>
+                      <option value="1m_2m">£1m – £2m</option>
+                      <option value="2m_5m">£2m – £5m</option>
+                      <option value="over_5m">Over £5m</option>
+                    </select>
+                    <span class="hpp-hint">A band is enough — we never share your figures.</span>
+                  </label>
+                  <label class="hpp-field">
+                    <span class="hpp-label">Years owning this practice</span>
+                    <select class="hpp-input" name="yearsOwned" required>
+                      <option value="" selected disabled>Select</option>
+                      <option value="under_2">Under 2 years</option>
+                      <option value="2_5">2 – 5 years</option>
+                      <option value="5_10">5 – 10 years</option>
+                      <option value="over_10">More than 10 years</option>
+                    </select>
+                  </label>
+                </div>
+
+                <div class="hpp-step-actions">
+                  <button type="button" class="hpp-pill hpp-pill-quiet hpp-back" data-back="1">← Back</button>
+                  <button type="button" class="hpp-pill hpp-pill-ink hpp-next" data-next="3">Continue →</button>
+                </div>
+              </fieldset>
+
+              <!-- ============ STEP 3 ============ -->
+              <fieldset class="hpp-step-panel" data-step="3">
+                <legend class="hpp-legend">Your application</legend>
+
+                <div class="hpp-field">
+                  <span class="hpp-label">Where do you suspect you're overpaying? <em>(select all that apply)</em></span>
+                  <div class="hpp-checks" data-group="categories">
+                    <label class="hpp-check"><input type="checkbox" name="categories" value="materials" /><span>Materials &amp; consumables</span></label>
+                    <label class="hpp-check"><input type="checkbox" name="categories" value="labs" /><span>Laboratory fees</span></label>
+                    <label class="hpp-check"><input type="checkbox" name="categories" value="utilities" /><span>Utilities &amp; energy</span></label>
+                    <label class="hpp-check"><input type="checkbox" name="categories" value="insurance" /><span>Insurance</span></label>
+                    <label class="hpp-check"><input type="checkbox" name="categories" value="card_banking" /><span>Card processing &amp; banking</span></label>
+                    <label class="hpp-check"><input type="checkbox" name="categories" value="telecoms_it" /><span>Telecoms, IT &amp; software</span></label>
+                    <label class="hpp-check"><input type="checkbox" name="categories" value="clinical_waste" /><span>Clinical waste</span></label>
+                    <label class="hpp-check"><input type="checkbox" name="categories" value="equipment" /><span>Equipment service &amp; maintenance</span></label>
+                    <label class="hpp-check"><input type="checkbox" name="categories" value="cleaning_facilities" /><span>Cleaning &amp; facilities</span></label>
+                    <label class="hpp-check"><input type="checkbox" name="categories" value="finance_leasing" /><span>Finance, leasing &amp; HP</span></label>
+                    <label class="hpp-check"><input type="checkbox" name="categories" value="not_sure" /><span>Not sure — that's why I'm applying</span></label>
+                  </div>
+                </div>
+
+                <div class="hpp-grid">
+                  <label class="hpp-field">
+                    <span class="hpp-label">Approximate annual overhead spend</span>
+                    <select class="hpp-input" name="overheadBand" required>
+                      <option value="" selected disabled>Select a band</option>
+                      <option value="under_100k">Under £100k</option>
+                      <option value="100k_250k">£100k – £250k</option>
+                      <option value="250k_500k">£250k – £500k</option>
+                      <option value="over_500k">Over £500k</option>
+                      <option value="not_sure">Not sure</option>
+                    </select>
+                  </label>
+                  <label class="hpp-field">
+                    <span class="hpp-label">Could you provide 12 months of supplier invoices?</span>
+                    <select class="hpp-input" name="invoiceAccess" required>
+                      <option value="" selected disabled>Select</option>
+                      <option value="yes_myself">Yes — I can pull them myself</option>
+                      <option value="yes_with_help">Yes — with help from my PM or accountant</option>
+                      <option value="not_sure">Not sure yet</option>
+                    </select>
+                    <span class="hpp-hint">Shortlisting prioritises practices that are ready to share.</span>
+                  </label>
+                  <label class="hpp-field">
+                    <span class="hpp-label">Who decides on supplier changes?</span>
+                    <select class="hpp-input" name="decisionMaker" required>
+                      <option value="" selected disabled>Select</option>
+                      <option value="sole">Me — I own the practice outright</option>
+                      <option value="shared">Shared with partners / directors</option>
+                      <option value="not_me">I'm not the final decision maker</option>
+                    </select>
+                  </label>
+                  <label class="hpp-field">
+                    <span class="hpp-label">If offered a place, when could you start?</span>
+                    <select class="hpp-input" name="timeline" required>
+                      <option value="" selected disabled>Select</option>
+                      <option value="at_launch">As soon as you launch</option>
+                      <option value="3_months">Within 3 months</option>
+                      <option value="6_months">Within 6 months</option>
+                      <option value="curious">Just curious for now</option>
+                    </select>
+                    <span class="hpp-hint">Honest answers help us sequence the cohort — "curious" is a valid answer.</span>
+                  </label>
+                </div>
+
                 <label class="hpp-field">
-                  <span class="hpp-label">Approximate annual overhead spend</span>
-                  <select class="hpp-input" name="overheadBand" required>
-                    <option value="" selected disabled>Select a band</option>
-                    <option value="under_100k">Under £100k</option>
-                    <option value="100k_250k">£100k – £250k</option>
-                    <option value="250k_500k">£250k – £500k</option>
-                    <option value="over_500k">Over £500k</option>
-                    <option value="not_sure">Not sure</option>
-                  </select>
+                  <span class="hpp-label">Why do you want one of the 25 founding places?</span>
+                  <textarea class="hpp-input hpp-textarea" name="motivation" rows="5" required minlength="80" maxlength="2000"
+                    placeholder="What's driving this for you — margin pressure, an exit on the horizon, a suspicion about a particular supplier? The more specific, the stronger the application."></textarea>
+                  <span class="hpp-hint"><span id="motivationCount">0</span> / 80 characters minimum</span>
                 </label>
-                <label class="hpp-field">
-                  <span class="hpp-label">Could you provide 12 months of supplier invoices?</span>
-                  <select class="hpp-input" name="invoiceAccess" required>
-                    <option value="" selected disabled>Select</option>
-                    <option value="yes_myself">Yes — I can pull them myself</option>
-                    <option value="yes_with_help">Yes — with help from my PM or accountant</option>
-                    <option value="not_sure">Not sure yet</option>
-                  </select>
-                  <span class="hpp-hint">Shortlisting prioritises practices that are ready to share.</span>
+
+                <label class="hpp-check hpp-consent">
+                  <input type="checkbox" name="consent" required />
+                  <span>
+                    I understand the founding cohort is limited to 25 practices, that a place is only
+                    confirmed after a review call, and I'm happy to be contacted about my application.
+                  </span>
                 </label>
-                <label class="hpp-field">
-                  <span class="hpp-label">Who decides on supplier changes?</span>
-                  <select class="hpp-input" name="decisionMaker" required>
-                    <option value="" selected disabled>Select</option>
-                    <option value="sole">Me — I own the practice outright</option>
-                    <option value="shared">Shared with partners / directors</option>
-                    <option value="not_me">I'm not the final decision maker</option>
-                  </select>
-                </label>
-                <label class="hpp-field">
-                  <span class="hpp-label">If offered a place, when could you start?</span>
-                  <select class="hpp-input" name="timeline" required>
-                    <option value="" selected disabled>Select</option>
-                    <option value="at_launch">As soon as you launch</option>
-                    <option value="3_months">Within 3 months</option>
-                    <option value="6_months">Within 6 months</option>
-                    <option value="curious">Just curious for now</option>
-                  </select>
-                  <span class="hpp-hint">Honest answers help us sequence the cohort — "curious" is a valid answer.</span>
-                </label>
-              </div>
 
-              <label class="hpp-field">
-                <span class="hpp-label">Why do you want one of the 25 founding places?</span>
-                <textarea class="hpp-input hpp-textarea" name="motivation" rows="5" required minlength="80" maxlength="2000"
-                  placeholder="What's driving this for you — margin pressure, an exit on the horizon, a suspicion about a particular supplier? The more specific, the stronger the application."></textarea>
-                <span class="hpp-hint"><span id="motivationCount">0</span> / 80 characters minimum</span>
-              </label>
+                <div class="hpp-step-actions">
+                  <button type="button" class="hpp-pill hpp-pill-quiet hpp-back" data-back="2">← Back</button>
+                  <button type="submit" class="hpp-pill hpp-pill-gold" id="submitBtn">Submit application</button>
+                </div>
+              </fieldset>
 
-              <label class="hpp-check hpp-consent">
-                <input type="checkbox" name="consent" required />
-                <span>
-                  I understand the founding cohort is limited to 25 practices, that a place is only
-                  confirmed after a review call, and I'm happy to be contacted about my application.
-                </span>
-              </label>
+              <p class="hpp-error" id="formError" role="alert" hidden></p>
+            </form>
 
-              <div class="hpp-step-actions">
-                <button type="button" class="btn btn-ghost hpp-back" data-back="2">← Back</button>
-                <button type="submit" class="btn btn-primary" id="submitBtn">Submit application</button>
-              </div>
-            </fieldset>
-
-            <p class="hpp-error" id="formError" role="alert" hidden></p>
-          </form>
-
-          <!-- Success state -->
-          <div class="hpp-success" id="formSuccess" hidden>
-            <span class="hpp-success-mark" aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="28" height="28">
-                <path d="M5 13l4 4L19 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
-              </svg>
-            </span>
-            <h3 class="hpp-success-title">Application received</h3>
-            <p class="hpp-success-copy" id="successPosition"></p>
-            <ol class="hpp-success-next">
-              <li>We review applications in order, within 5 working days.</li>
-              <li>If shortlisted, we'll call to scope your review and confirm your place.</li>
-              <li>Founding terms are confirmed in writing before anything begins.</li>
-            </ol>
-            <p class="hpp-success-note">
-              In the meantime, run your free <a href="/report">Dental Data Vault benchmark</a> — it
-              strengthens your application and takes minutes.
-            </p>
+            <!-- Success state -->
+            <div class="hpp-success" id="formSuccess" hidden>
+              <span class="hpp-success-mark" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="28" height="28">
+                  <path d="M5 13l4 4L19 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </span>
+              <h3 class="hpp-success-title">Application received</h3>
+              <p class="hpp-success-copy" id="successPosition"></p>
+              <ol class="hpp-success-next">
+                <li>We review applications in order, within 5 working days.</li>
+                <li>If shortlisted, we'll call to scope your review and confirm your place.</li>
+                <li>Founding terms are confirmed in writing before anything begins.</li>
+              </ol>
+              <p class="hpp-success-note">
+                In the meantime, run your free <a href="/report">Dental Data Vault benchmark</a> — it
+                strengthens your application and takes minutes.
+              </p>
+            </div>
           </div>
         </div>
       </section>
 
       <!-- ===================== FAQ ===================== -->
-      <section class="hp-section" id="faq" aria-labelledby="faqHeading">
-        <div class="hpp-shead">
-          <p class="eyebrow">Questions</p>
-          <h2 class="hp-shead-title" id="faqHeading">Asked by every principal, answered straight</h2>
-        </div>
+      <section class="hpp-section" id="faq" aria-labelledby="faqHeading">
+        <div class="hpp-shell">
+          <h2 class="hpp-h2 hpp-center" id="faqHeading">Questions, answered straight.</h2>
 
-        <div class="hpp-faq">
-          <details class="hpp-faq-item">
-            <summary>What does it actually cost?</summary>
-            <p>
-              Nothing upfront, nothing ongoing, and nothing at all if no savings are found. Our fee
-              is a share of the savings we deliver — verified against your invoices — so we are only
-              paid out of money you weren't keeping anyway. Founding practices get the best share
-              terms we will ever offer.
-            </p>
-          </details>
-          <details class="hpp-faq-item">
-            <summary>Will I have to change suppliers I trust?</summary>
-            <p>
-              No. Around 60% of practices stay with their existing suppliers on improved pricing and
-              terms. Every recommendation — stay or switch — is yours to approve or decline. Nothing
-              changes without your sign-off.
-            </p>
-          </details>
-          <details class="hpp-faq-item">
-            <summary>How much of my time will it take?</summary>
-            <p>
-              A review call, access to 12 months of supplier invoices (your practice manager or
-              accountant can provide these), and sign-off on the recommendations. The analysis,
-              tendering, negotiation and 24-month monitoring are all done for you.
-            </p>
-          </details>
-          <details class="hpp-faq-item">
-            <summary>Is my data safe?</summary>
-            <p>
-              Your invoices and figures are used solely to run your review, held confidentially, and
-              never shared or published in a way that identifies your practice — the same standard
-              behind every Dental Data Vault benchmark.
-            </p>
-          </details>
-          <details class="hpp-faq-item">
-            <summary>Why is the cohort limited to 25?</summary>
-            <p>
-              Because a forensic review is specialist-intensive and we won't dilute it at launch.
-              When the 25 places are taken, applications stay open for the general waiting list —
-              but founding terms go with the founding places.
-            </p>
-          </details>
-          <details class="hpp-faq-item">
-            <summary>Does applying commit me to anything?</summary>
-            <p>
-              No. Applying reserves your position in the queue. A place is only confirmed after your
-              review call, and terms are agreed in writing before any work begins.
-            </p>
-          </details>
+          <div class="hpp-faq">
+            <details class="hpp-faq-item">
+              <summary>What does it actually cost?</summary>
+              <p>
+                Nothing upfront, nothing ongoing, and nothing at all if no savings are found. Our fee
+                is a share of the savings we deliver — verified against your invoices — so we are only
+                paid out of money you weren't keeping anyway. Founding practices get the best share
+                terms we will ever offer.
+              </p>
+            </details>
+            <details class="hpp-faq-item">
+              <summary>Will I have to change suppliers I trust?</summary>
+              <p>
+                No. Around 60% of practices stay with their existing suppliers on improved pricing and
+                terms. Every recommendation — stay or switch — is yours to approve or decline. Nothing
+                changes without your sign-off.
+              </p>
+            </details>
+            <details class="hpp-faq-item">
+              <summary>How much of my time will it take?</summary>
+              <p>
+                A review call, access to 12 months of supplier invoices (your practice manager or
+                accountant can provide these), and sign-off on the recommendations. The analysis,
+                tendering, negotiation and 24-month monitoring are all done for you.
+              </p>
+            </details>
+            <details class="hpp-faq-item">
+              <summary>Is my data safe?</summary>
+              <p>
+                Your invoices and figures are used solely to run your review, held confidentially, and
+                never shared or published in a way that identifies your practice — the same standard
+                behind every Dental Data Vault benchmark.
+              </p>
+            </details>
+            <details class="hpp-faq-item">
+              <summary>Why is the cohort limited to 25?</summary>
+              <p>
+                Because a forensic review is specialist-intensive and we won't dilute it at launch.
+                When the 25 places are taken, applications stay open for the general waiting list —
+                but founding terms go with the founding places.
+              </p>
+            </details>
+            <details class="hpp-faq-item">
+              <summary>Does applying commit me to anything?</summary>
+              <p>
+                No. Applying reserves your position in the queue. A place is only confirmed after your
+                review call, and terms are agreed in writing before any work begins.
+              </p>
+            </details>
+          </div>
         </div>
       </section>
 
-      <!-- ===================== FINAL CTA ===================== -->
-      <section class="hp-cta" aria-labelledby="finalHeading">
-        <p class="eyebrow eyebrow--onink">25 founding places</p>
-        <h2 class="hp-cta-title" id="finalHeading">The leak doesn't fix itself</h2>
-        <p class="hp-cta-lede">
-          Every month of drift is profit you don't keep and practice value you don't bank. Five
-          minutes to apply — and the only risk is learning you're already paying the right price.
-        </p>
-        <div class="hp-cta-actions">
-          <a class="btn btn-gold hp-cta-btn" href="#apply">Claim 1 of 25 founding places</a>
+      <!-- ===================== FINAL CTA BANNER ===================== -->
+      <section class="hpp-banner" aria-labelledby="bannerHeading">
+        <div class="hpp-shell hpp-banner-inner">
+          <div>
+            <h2 class="hpp-banner-title" id="bannerHeading">Stop the leak, today.</h2>
+            <p class="hpp-banner-sub">Five minutes to apply. No savings, no fee. 25 founding places.</p>
+          </div>
+          <a class="hpp-pill hpp-pill-gold hpp-pill-lg" href="#apply">Claim your place</a>
         </div>
-        <p class="hp-cta-note">No savings, no fee · You approve every change · Founding terms locked in</p>
       </section>
 
-      <footer class="hp-footer">
-        <div class="hp-footer-inner">
+      <footer class="hpp-footer">
+        <div class="hpp-shell hpp-footer-inner">
           <a class="brand" href="/" aria-label="Dental Data Vault home">
             <img class="logo-img" src="./assets/logo.png" alt="Frank Taylor &amp; Associates" />
-            <span class="brand-tag">Dental Data Vault</span>
+            <span class="hpp-brand-tag">Dental Data Vault</span>
           </a>
-          <div class="hp-footer-text">
-            <p>Independent dental practice owners across England &amp; Wales.</p>
-          </div>
+          <p>Independent dental practice owners across England &amp; Wales.</p>
         </div>
       </footer>
     </main>
