@@ -18,25 +18,6 @@
     })
     .catch(() => {});
 
-  /* ================= Scroll reveals ================= */
-  const revealTargets = document.querySelectorAll(
-    ".hpp-shead, .hpp-leak, .hpp-cat, .hpp-stack-list, .hpp-stack-total, .hpp-step, .hpp-calc, .hpp-faq-item, .hpp-guarantee-inner"
-  );
-  revealTargets.forEach((el) => el.classList.add("hpp-reveal"));
-
-  const revealObserver = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add("is-in");
-          revealObserver.unobserve(entry.target);
-        }
-      });
-    },
-    { threshold: 0.12, rootMargin: "0px 0px -40px 0px" }
-  );
-  revealTargets.forEach((el) => revealObserver.observe(el));
-
   /* ================= Count-up animations ================= */
   function countUp(el, target, { prefix = "", suffix = "", duration = 1100 } = {}) {
     if (reduceMotion) {
