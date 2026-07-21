@@ -18,6 +18,10 @@
       "destination": "/frontend/report.html"
     },
     {
+      "source": "/hidden-profit",
+      "destination": "/frontend/hidden-profit.html"
+    },
+    {
       "source": "/(.*)",
       "destination": "/frontend/$1"
     }

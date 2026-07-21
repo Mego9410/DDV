@@ -94,6 +94,19 @@ async function selectRows(table, { select = "*", filters = {}, limit = 1, order 
   return text ? JSON.parse(text) : [];
 }
 
+async function countRows(table) {
+  const url = SUPABASE_URL?.replace(/\/$/, "");
+  requireEnv("SUPABASE_URL", url);
+  const resp = await fetch(`${url}/rest/v1/${table}?select=id&limit=1`, {
+    method: "HEAD",
+    headers: { ...supabaseHeaders(), Prefer: "count=exact" },
+  });
+  if (!resp.ok) return null;
+  const range = resp.headers.get("content-range") || "";
+  const total = Number(range.split("/")[1]);
+  return Number.isFinite(total) ? total : null;
+}
+
 async function patchRows(table, filters, patch) {
   const url = SUPABASE_URL?.replace(/\/$/, "");
   requireEnv("SUPABASE_URL", url);
@@ -163,6 +176,7 @@ module.exports = {
   callRpc,
   insertRow,
   selectRows,
+  countRows,
   patchRows,
   sendAuthMagicLink,
 };
